@@ -1,0 +1,346 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recarga de Máquinas Expendedoras</title>
+    <link rel="stylesheet" href="{% static 'actualizarStock.css' %}">
+</head>
+<body>
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2>Gestiona el stock y registra las recargas de productos</h2>
+            <p>Sistema de gestión de inventario para máquinas expendedoras</p>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="content-header">
+                <h1>🔄 Recarga de Máquinas Expendedoras</h1>
+                <p>Registra las recargas y gestiona el inventario de productos</p>
+            </div>
+
+            <!-- Alertas -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Formulario de recarga -->
+            <div class="form-container">
+                <div class="form-title">Formulario de Recarga</div>
+                
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="maquina">Máquina a recargar:</label>
+                            <select name="maquina" id="maquina" required>
+                                <option value="">Selecciona una máquina</option>
+                                {% for maquina in maquinas %}
+                                    <option value="{{ maquina.idMaquina }}">{{ maquina.nombre }} - {{ maquina.ubicacion }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="producto">Producto a cargar:</label>
+                            <div class="search-container">
+                                <input type="text" id="producto-search" placeholder="Escribe para buscar productos..." autocomplete="off">
+                                <input type="hidden" name="producto" id="producto" required>
+                                <div class="search-results" id="search-results"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cantidad">Cantidad a cargar:</label>
+                            <input type="number" name="cantidad" id="cantidad" min="1" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="usuario">Usuario responsable:</label>
+                            <select name="usuario" id="usuario" required>
+                                <option value="">Selecciona un usuario</option>
+                                {% for usuario in usuarios %}
+                                    <option value="{{ usuario.idUsuario }}">{{ usuario.nombre }} {{ usuario.apellido }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn">
+                            <span>✅</span>
+                            <span>Registrar Recarga</span>
+                        </button>
+                        <a href="{% url 'index' %}" class="btn btn-secondary">
+                            <span>🏠</span>
+                            <span>Volver al Inicio</span>
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Lista de productos -->
+            <div class="products-section">
+                <div class="products-header">
+                    <div>
+                        <div class="products-title">📦 Inventario de Productos</div>
+                        <div class="products-subtitle">Stock disponible en depósito</div>
+                    </div>
+                </div>
+
+                {% if productos %}
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Marca</th>
+                                <th>Stock Disponible</th>
+                                <th>Estado</th>
+                                <th>Precio Unitario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for producto in productos %}
+                                <tr>
+                                    <td>
+                                        <div class="product-name">{{ producto.nombre }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="product-brand">{{ producto.marca }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="stock-amount 
+                                            {% if producto.stock.cantidadDisponible > 50 %}stock-high
+                                            {% elif producto.stock.cantidadDisponible > 20 %}stock-medium
+                                            {% else %}stock-low{% endif %}">
+                                            {{ producto.stock.cantidadDisponible|default:0 }} unidades
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if producto.stock.cantidadDisponible > 50 %}
+                                            <span class="stock-status status-high">Alto</span>
+                                        {% elif producto.stock.cantidadDisponible > 20 %}
+                                            <span class="stock-status status-medium">Medio</span>
+                                        {% else %}
+                                            <span class="stock-status status-low">Bajo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="price">${{ producto.precioUnitario }}</div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="icon">📦</div>
+                        <h3>No hay productos disponibles</h3>
+                        <p>Agrega productos al sistema para comenzar a gestionar el inventario.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Datos de productos para JavaScript -->
+    <script>
+        const productosData = [
+            {% for producto in productos %}
+            {
+                id: {{ producto.id }},
+                nombre: "{{ producto.nombre }}",
+                marca: "{{ producto.marca }}",
+                stock: {{ producto.stock.cantidadDisponible|default:0 }}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+    </script>
+
+    <!-- Script de búsqueda dinámica -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('producto-search');
+            const hiddenInput = document.getElementById('producto');
+            const searchResults = document.getElementById('search-results');
+            let selectedIndex = -1;
+            let filteredProducts = [];
+
+            // Función para filtrar productos
+            function filterProducts(query) {
+                if (query.length < 2) {
+                    return [];
+                }
+                
+                const lowerQuery = query.toLowerCase();
+                return productosData.filter(producto => 
+                    producto.nombre.toLowerCase().includes(lowerQuery) ||
+                    producto.marca.toLowerCase().includes(lowerQuery)
+                );
+            }
+
+            // Función para mostrar resultados
+            function showResults(products) {
+                searchResults.innerHTML = '';
+                
+                if (products.length === 0) {
+                    searchResults.innerHTML = '<div class="no-results">No se encontraron productos</div>';
+                    searchResults.classList.add('show');
+                    return;
+                }
+
+                products.forEach((producto, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'search-result-item';
+                    item.dataset.index = index;
+                    item.dataset.productId = producto.id;
+                    
+                    item.innerHTML = `
+                        <div class="product-info">
+                            <div class="product-name">${producto.nombre}</div>
+                            <div class="product-brand">${producto.marca}</div>
+                        </div>
+                        <div class="stock-info">
+                            <div class="stock-amount">${producto.stock}</div>
+                            <div class="stock-label">Stock</div>
+                        </div>
+                    `;
+                    
+                    item.addEventListener('click', () => selectProduct(producto));
+                    item.addEventListener('mouseenter', () => {
+                        selectedIndex = index;
+                        updateSelection();
+                    });
+                    
+                    searchResults.appendChild(item);
+                });
+                
+                searchResults.classList.add('show');
+                selectedIndex = -1;
+            }
+
+            // Función para seleccionar producto
+            function selectProduct(producto) {
+                searchInput.value = `${producto.nombre} - ${producto.marca}`;
+                hiddenInput.value = producto.id;
+                searchResults.classList.remove('show');
+                selectedIndex = -1;
+            }
+
+            // Función para actualizar selección visual
+            function updateSelection() {
+                const items = searchResults.querySelectorAll('.search-result-item');
+                items.forEach((item, index) => {
+                    item.classList.toggle('selected', index === selectedIndex);
+                });
+            }
+
+            // Event listener para el input de búsqueda
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                filteredProducts = filterProducts(query);
+                showResults(filteredProducts);
+            });
+
+            // Event listener para teclas
+            searchInput.addEventListener('keydown', function(e) {
+                if (searchResults.classList.contains('show')) {
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        selectedIndex = Math.min(selectedIndex + 1, filteredProducts.length - 1);
+                        updateSelection();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        selectedIndex = Math.max(selectedIndex - 1, -1);
+                        updateSelection();
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (selectedIndex >= 0 && filteredProducts[selectedIndex]) {
+                            selectProduct(filteredProducts[selectedIndex]);
+                        }
+                    } else if (e.key === 'Escape') {
+                        searchResults.classList.remove('show');
+                        selectedIndex = -1;
+                    }
+                }
+            });
+
+            // Event listener para hacer clic fuera
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                    searchResults.classList.remove('show');
+                    selectedIndex = -1;
+                }
+            });
+
+            // Event listener para focus
+            searchInput.addEventListener('focus', function() {
+                if (this.value.trim().length >= 2) {
+                    filteredProducts = filterProducts(this.value.trim());
+                    showResults(filteredProducts);
+                }
+            });
+
+            // Validación de stock en tiempo real
+            const cantidadInput = document.getElementById('cantidad');
+            const form = document.querySelector('form');
+
+            // Función para validar stock
+            function validateStock() {
+                const cantidad = parseInt(cantidadInput.value) || 0;
+                const productoId = hiddenInput.value;
+                
+                if (productoId && cantidad > 0) {
+                    const producto = productosData.find(p => p.id == productoId);
+                    if (producto && cantidad > producto.stock) {
+                        cantidadInput.setCustomValidity(`Stock insuficiente. Disponible: ${producto.stock}, Solicitado: ${cantidad}`);
+                        cantidadInput.style.borderColor = '#dc3545';
+                        return false;
+                    } else {
+                        cantidadInput.setCustomValidity('');
+                        cantidadInput.style.borderColor = '#e9ecef';
+                        return true;
+                    }
+                }
+                return true;
+            }
+
+            // Event listeners para validación
+            cantidadInput.addEventListener('input', validateStock);
+            hiddenInput.addEventListener('change', validateStock);
+
+            // Validación antes de enviar el formulario
+            form.addEventListener('submit', function(e) {
+                if (!validateStock()) {
+                    e.preventDefault();
+                    alert('❌ Error: No hay suficiente stock disponible para la cantidad solicitada.');
+                }
+            });
+
+            // Actualizar placeholder con stock disponible
+            hiddenInput.addEventListener('change', function() {
+                const productoId = this.value;
+                if (productoId) {
+                    const producto = productosData.find(p => p.id == productoId);
+                    if (producto) {
+                        cantidadInput.max = producto.stock;
+                        cantidadInput.placeholder = `Máximo: ${producto.stock} unidades`;
+                    }
+                } else {
+                    cantidadInput.max = '';
+                    cantidadInput.placeholder = '';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
