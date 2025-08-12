@@ -1,0 +1,62 @@
+/* ===== Estilos base para la tabla de stock ===== */
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    margin: 20px;
+}
+
+h1 {
+    margin-bottom: 5px;
+}
+
+p {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #666;
+}
+
+/* Tabla de productos */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+thead {
+    background-color: #343a40;
+    color: white;
+}
+
+thead th {
+    padding: 10px;
+    text-align: left;
+}
+
+tbody td {
+    padding: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+tfoot td {
+    padding: 10px;
+    background-color: #f1f1f1;
+    font-weight: bold;
+}
+
+/* Estados de stock */
+.stock-high {
+    color: #28a745; /* verde */
+    font-weight: bold;
+}
+
+.stock-medium {
+    color: #ffc107; /* amarillo */
+    font-weight: bold;
+}
+
+.stock-low {
+    color: #dc3545; /* rojo */
+    font-weight: bold;
+}

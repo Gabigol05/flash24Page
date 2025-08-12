@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Maquina, Producto, Usuario, Stock, RecargaMaquina
+from .models import Maquina, Producto, Usuario, Stock, RecargaMaquina, Proveedor, Ciudad, Compra, DetalleCompra
 
 # Create your views here.
 
@@ -57,7 +57,104 @@ def index(request):
 
 @require_auth
 def registrarCompra(request):
-    return render(request, 'registrarCompra.html')
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            proveedor_id = request.POST.get('proveedor')
+            lugar_id = request.POST.get('lugar')
+            importe_total = float(request.POST.get('importe_total'))
+            
+            # Validar que todos los campos estén presentes
+            if not all([proveedor_id, lugar_id, importe_total]):
+                messages.error(request, '❌ Todos los campos son obligatorios')
+                return redirect('registrarCompra')
+            
+            # Obtener las instancias de los modelos
+            proveedor = Proveedor.objects.get(idProveedor=proveedor_id)
+            lugar = Ciudad.objects.get(id=lugar_id)
+            usuario = Usuario.objects.get(idUsuario=request.session['user_id'])
+            
+            # Crear la compra
+            compra = Compra.objects.create(
+                lugar=lugar,
+                usuarioEncargado=usuario,
+                proveedor=proveedor
+            )
+            
+            # Procesar detalles de la compra
+            total_calculado = 0
+            detalles_procesados = 0
+            
+            # Obtener todos los campos del formulario
+            for key, value in request.POST.items():
+                if key.startswith('producto_') and value:
+                    detalle_num = key.split('_')[1]
+                    producto_id = value
+                    cantidad = int(request.POST.get(f'cantidad_{detalle_num}', 0))
+                    precio_unitario = float(request.POST.get(f'precio_unitario_{detalle_num}', 0))
+                    subtotal = float(request.POST.get(f'subtotal_{detalle_num}', 0))
+                    
+                    if producto_id and cantidad > 0 and precio_unitario > 0:
+                        producto = Producto.objects.get(id=producto_id)
+                        
+                        # Crear el detalle de compra
+                        DetalleCompra.objects.create(
+                            compra=compra,
+                            producto=producto,
+                            cantidad=cantidad,
+                            subtotal=subtotal
+                        )
+                        
+                        total_calculado += subtotal
+                        detalles_procesados += 1
+            
+            # Validar que el importe total coincida con la suma de los detalles
+            if abs(importe_total - total_calculado) > 0.01:
+                # Si no coincide, eliminar la compra y mostrar error
+                compra.delete()
+                messages.error(request, f'❌ El importe total (${importe_total}) no coincide con la suma de los detalles (${total_calculado:.2f})')
+                return redirect('registrarCompra')
+            
+            if detalles_procesados == 0:
+                compra.delete()
+                messages.error(request, '❌ Debe agregar al menos un producto a la compra')
+                return redirect('registrarCompra')
+            
+            messages.success(request, f'✅ Compra registrada exitosamente: {detalles_procesados} productos por ${total_calculado:.2f}')
+            return redirect('registrarCompra')
+            
+        except (Proveedor.DoesNotExist, Ciudad.DoesNotExist, Producto.DoesNotExist) as e:
+            messages.error(request, f'❌ Error: {str(e)}')
+            return redirect('registrarCompra')
+        except ValueError as e:
+            messages.error(request, f'❌ Error de validación: {str(e)}')
+            return redirect('registrarCompra')
+        except Exception as e:
+            messages.error(request, f'❌ Error inesperado: {str(e)}')
+            return redirect('registrarCompra')
+    
+    # GET request - mostrar el formulario
+    import json
+    
+    context = {
+        'proveedores': Proveedor.objects.all(),
+        'ciudades': Ciudad.objects.all(),
+        'productos': Producto.objects.all(),
+    }
+    
+    # Convertir productos a JSON para JavaScript
+    productos_json = []
+    for producto in context['productos']:
+        productos_json.append({
+            'id': producto.id,
+            'nombre': producto.nombre,
+            'marca': producto.marca,
+            'precioUnitario': float(producto.precioUnitario)
+        })
+    
+    context['productos_json'] = json.dumps(productos_json)
+    
+    return render(request, 'registrarCompra.html', context)
 
 @require_auth
 def actualizarStock(request):
@@ -125,3 +222,20 @@ def actualizarStock(request):
             producto.stock = None
     
     return render(request, 'actualizarStock.html', context)
+
+@require_auth
+def consultarStock(request):
+    if request.method == 'GET':
+        productos = Producto.objects.all()
+        for producto in productos:
+            try: 
+                producto.stock = Stock.objects.get(producto=producto)
+            except Stock.DoesNotExist:
+                producto.stock = None 
+                
+    context = {
+        'productos': productos
+    }
+    
+    return render(request, 'consultarStock.html', context)
+    

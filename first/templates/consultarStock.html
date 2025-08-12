@@ -1,0 +1,67 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Disponible</title>
+    <link rel="stylesheet" href="{% static 'consultarStock.css' %}">
+</head>
+<body>
+    <h1>📦 Inventario de Productos</h1>
+    <p>Stock disponible en depósito</p>
+
+    {% if productos %}
+        <table border="1" cellpadding="8" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Marca</th>
+                    <th>Stock Disponible</th>
+                    <th>Estado</th>
+                    <th>Precio Unitario</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in productos %}
+                    <tr>
+                        <td>{{ producto.nombre }}</td>
+                        <td>{{ producto.marca }}</td>
+                        <td class="
+                            {% if producto.stock and producto.stock.cantidadDisponible > 50 %}stock-high
+                            {% elif producto.stock and producto.stock.cantidadDisponible > 20 %}stock-medium
+                            {% else %}stock-low{% endif %}
+                        ">
+                            {{ producto.stock.cantidadDisponible|default:0 }} unidades
+                        </td>
+                        <td class="
+                            {% if producto.stock and producto.stock.cantidadDisponible > 50 %}stock-high
+                            {% elif producto.stock and producto.stock.cantidadDisponible > 20 %}stock-medium
+                            {% else %}stock-low{% endif %}
+                        ">
+                            {% if producto.stock and producto.stock.cantidadDisponible > 50 %}
+                                Alto
+                            {% elif producto.stock and producto.stock.cantidadDisponible > 20 %}
+                                Medio
+                            {% else %}
+                                Bajo
+                            {% endif %}
+                        </td>
+                        <td>${{ producto.precioUnitario }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5"><strong>Total productos:</strong> {{ productos|length }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    {% else %}
+        <div>
+            <div>📦</div>
+            <h3>No hay productos disponibles</h3>
+            <p>Agrega productos al sistema para comenzar a gestionar el inventario.</p>
+        </div>
+    {% endif %}
+</body>
+</html>
