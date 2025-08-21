@@ -92,13 +92,14 @@ class DetalleCompra(models.Model):
     def actualizar_stock_producto(self):
         """Actualiza el stock del producto cuando se registra una compra"""
         try:
-            # Obtener o crear el stock del producto
-            stock, created = Stock.objects.get_or_create(
+            # Obtener o crear el stock del producto en la ciudad de la compra
+            stock, created = StockCiudad.objects.get_or_create(
                 producto=self.producto,
+                ciudad=self.compra.lugar,
                 defaults={'cantidadDisponible': 0}
             )
-            
-            # Aumentar el stock con la cantidad comprada
+
+            # Aumentar el stock con la cantidad comprada en esa ciudad
             stock.actualizar_stock(self.cantidad)
             
         except Exception as e:
@@ -108,37 +109,40 @@ class DetalleCompra(models.Model):
     def __str__(self):
         return f"{self.cantidad}x {self.producto.nombre} - ${self.subtotal}"
 
-class Stock(models.Model):
-    producto = models.OneToOneField(Producto, on_delete=models.CASCADE, primary_key=True)
+class StockCiudad(models.Model):
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='stock_por_ciudad')
+    ciudad = models.ForeignKey(Ciudad, on_delete=models.CASCADE, related_name='stock_por_producto')
     cantidadDisponible = models.IntegerField(default=0)
-    
+
+    class Meta:
+        unique_together = ('producto', 'ciudad')
+
     def __str__(self):
-        return f"Stock de {self.producto.nombre}: {self.cantidadDisponible} unidades"
-    
+        return f"Stock de {self.producto.nombre} en {self.ciudad.nombre}: {self.cantidadDisponible} unidades"
+
     def actualizar_stock(self, cantidad):
-        """Actualiza el stock del producto (aumenta)"""
+        """Actualiza el stock del producto en la ciudad (aumenta)"""
         self.cantidadDisponible += cantidad
         self.save()
-    
+
     def reducir_stock(self, cantidad):
-        """Reduce el stock del producto (venta)"""
+        """Reduce el stock del producto en la ciudad (venta)"""
         if self.cantidadDisponible >= cantidad:
             self.cantidadDisponible -= cantidad
             self.save()
             return True
         return False
-    
+
     def hay_stock_suficiente(self, cantidad):
         """Verifica si hay stock suficiente para una cantidad específica"""
         return self.cantidadDisponible >= cantidad
-    
+
     def stock_bajo(self, umbral=10):
         """Verifica si el stock está por debajo del umbral"""
         return self.cantidadDisponible <= umbral
-    
+
     def porcentaje_stock(self):
         """Retorna el porcentaje de stock disponible (para inventario)"""
-        # Puedes definir un stock máximo según tus necesidades
         stock_maximo = 100  # Ejemplo
         return (self.cantidadDisponible / stock_maximo) * 100
 
@@ -147,6 +151,7 @@ class RecargaMaquina(models.Model):
     fechaHora = models.DateTimeField(auto_now_add=True)
     maquina = models.ForeignKey(Maquina, on_delete=models.CASCADE, related_name='recargas')
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='recargas')
+    ciudad = models.ForeignKey(Ciudad, on_delete=models.CASCADE, related_name='recargas', null=True)
     cantidad = models.IntegerField()
     usuarioResponsable = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='recargas_realizadas')
     
@@ -164,8 +169,8 @@ class RecargaMaquina(models.Model):
     def reducir_stock_producto(self):
         """Reduce el stock del producto cuando se recarga una máquina"""
         try:
-            # Obtener el stock del producto
-            stock = Stock.objects.get(producto=self.producto)
+            # Obtener el stock del producto en la ciudad correspondiente
+            stock = StockCiudad.objects.get(producto=self.producto, ciudad=self.ciudad)
             
             # Verificar si hay stock suficiente
             if stock.hay_stock_suficiente(self.cantidad):
@@ -177,10 +182,10 @@ class RecargaMaquina(models.Model):
                 self.delete()
                 raise ValueError(f"No hay stock suficiente. Disponible: {stock.cantidadDisponible}, Solicitado: {self.cantidad}")
                 
-        except Stock.DoesNotExist:
+        except StockCiudad.DoesNotExist:
             # Si no existe stock, eliminar la recarga
             self.delete()
-            raise ValueError(f"No existe stock para el producto {self.producto.nombre}")
+            raise ValueError(f"No existe stock para el producto {self.producto.nombre} en {self.ciudad.nombre}")
         except Exception as e:
             print(f"Error al reducir stock: {e}")
             return False

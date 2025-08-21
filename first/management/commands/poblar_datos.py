@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from first.models import Ciudad, Usuario, Proveedor, Maquina, Producto, Stock
+from first.models import Ciudad, Usuario, Proveedor, Maquina, Producto, StockCiudad
 
 class Command(BaseCommand):
     help = 'Pobla la base de datos con datos de ejemplo para el sistema de máquinas expendedoras'
@@ -91,14 +91,16 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(f'✅ Producto creado: {producto.nombre}')
         
-        # Crear stock inicial para todos los productos
+        # Crear stock inicial para todos los productos en todas las ciudades
         for producto in Producto.objects.all():
-            stock, created = Stock.objects.get_or_create(
-                producto=producto,
-                defaults={'cantidadDisponible': 100}  # Stock inicial de 100 unidades
-            )
-            if created:
-                self.stdout.write(f'✅ Stock creado para {producto.nombre}: 100 unidades')
+            for ciudad in Ciudad.objects.all():
+                stock, created = StockCiudad.objects.get_or_create(
+                    producto=producto,
+                    ciudad=ciudad,
+                    defaults={'cantidadDisponible': 100}  # Stock inicial de 100 unidades
+                )
+                if created:
+                    self.stdout.write(f'✅ Stock creado para {producto.nombre} en {ciudad.nombre}: 100 unidades')
         
         self.stdout.write(self.style.SUCCESS('🎉 ¡Datos de ejemplo creados exitosamente!'))
         self.stdout.write('📊 Resumen:')
@@ -107,4 +109,4 @@ class Command(BaseCommand):
         self.stdout.write(f'   - {Proveedor.objects.count()} proveedores')
         self.stdout.write(f'   - {Maquina.objects.count()} máquinas')
         self.stdout.write(f'   - {Producto.objects.count()} productos')
-        self.stdout.write(f'   - {Stock.objects.count()} registros de stock') 
+        self.stdout.write(f'   - {StockCiudad.objects.count()} registros de stock por ciudad')

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Ciudad, Usuario, Proveedor, Maquina, Producto, Compra, DetalleCompra, Stock, RecargaMaquina
+from .models import Ciudad, Usuario, Proveedor, Maquina, Producto, Compra, DetalleCompra, StockCiudad, RecargaMaquina
 
 # Register your models here.
 
@@ -58,16 +58,16 @@ class DetalleCompraAdmin(admin.ModelAdmin):
     search_fields = ['producto__nombre', 'compra__id']
     readonly_fields = ['subtotal']
 
-@admin.register(Stock)
-class StockAdmin(admin.ModelAdmin):
-    list_display = ['producto', 'cantidadDisponible']
-    search_fields = ['producto__nombre']
-    list_filter = ['producto__marca']
-    readonly_fields = ['producto']
+@admin.register(StockCiudad)
+class StockCiudadAdmin(admin.ModelAdmin):
+    list_display = ['producto', 'ciudad', 'cantidadDisponible']
+    search_fields = ['producto__nombre', 'ciudad__nombre']
+    list_filter = ['producto__marca', 'ciudad']
+    readonly_fields = ['producto', 'ciudad']
 
 @admin.register(RecargaMaquina)
 class RecargaMaquinaAdmin(admin.ModelAdmin):
-    list_display = ['id', 'fechaHora', 'maquina', 'producto', 'cantidad', 'usuarioResponsable']
-    list_filter = ['fechaHora', 'maquina', 'producto']
-    search_fields = ['maquina__nombre', 'producto__nombre', 'usuarioResponsable__nombre']
+    list_display = ['id', 'fechaHora', 'maquina', 'producto', 'ciudad', 'cantidad', 'usuarioResponsable']
+    list_filter = ['fechaHora', 'maquina', 'producto', 'ciudad']
+    search_fields = ['maquina__nombre', 'producto__nombre', 'usuarioResponsable__nombre', 'ciudad__nombre']
     readonly_fields = ['fechaHora']

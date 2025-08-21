@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Maquina, Producto, Usuario, Stock, RecargaMaquina, Proveedor, Ciudad, Compra, DetalleCompra
+from .models import Maquina, Producto, Usuario, StockCiudad, RecargaMaquina, Proveedor, Ciudad, Compra, DetalleCompra
 
 # Create your views here.
 
@@ -165,31 +165,34 @@ def actualizarStock(request):
             producto_id = request.POST.get('producto')
             cantidad = int(request.POST.get('cantidad'))
             usuario_id = request.POST.get('usuario')
-            
+            ciudad_id = request.POST.get('ciudad')
+
             # Validar que todos los campos estén presentes
-            if not all([maquina_id, producto_id, cantidad, usuario_id]):
+            if not all([maquina_id, producto_id, cantidad, usuario_id, ciudad_id]):
                 messages.error(request, '❌ Todos los campos son obligatorios')
                 return redirect('actualizarStock')
-            
+
             # Obtener las instancias de los modelos
             maquina = Maquina.objects.get(idMaquina=maquina_id)
             producto = Producto.objects.get(id=producto_id)
             usuario = Usuario.objects.get(idUsuario=usuario_id)
-            
+            ciudad = Ciudad.objects.get(id=ciudad_id)
+
             # Verificar si hay stock suficiente
             try:
-                stock = Stock.objects.get(producto=producto)
+                stock = StockCiudad.objects.get(producto=producto, ciudad=ciudad)
                 if not stock.hay_stock_suficiente(cantidad):
                     messages.error(request, f'❌ Stock insuficiente. Disponible: {stock.cantidadDisponible}, Solicitado: {cantidad}')
                     return redirect('actualizarStock')
-            except Stock.DoesNotExist:
-                messages.error(request, f'❌ No existe stock para el producto {producto.nombre}')
+            except StockCiudad.DoesNotExist:
+                messages.error(request, f'❌ No existe stock para el producto {producto.nombre} en {ciudad.nombre}')
                 return redirect('actualizarStock')
-            
+
             # Crear la recarga (esto automáticamente reducirá el stock)
             recarga = RecargaMaquina.objects.create(
                 maquina=maquina,
                 producto=producto,
+                ciudad=ciudad,
                 cantidad=cantidad,
                 usuarioResponsable=usuario
             )
@@ -208,34 +211,41 @@ def actualizarStock(request):
             return redirect('actualizarStock')
     
     # GET request - mostrar el formulario
+    ciudad_id = request.GET.get('ciudad')
+    ciudad = Ciudad.objects.filter(id=ciudad_id).first()
+
     context = {
         'maquinas': Maquina.objects.all(),
         'productos': Producto.objects.all(),
         'usuarios': Usuario.objects.all(),
+        'ciudades': Ciudad.objects.all(),
+        'ciudad_seleccionada': int(ciudad_id) if ciudad else None,
     }
-    
-    # Agregar información de stock a los productos
+
     for producto in context['productos']:
-        try:
-            producto.stock = Stock.objects.get(producto=producto)
-        except Stock.DoesNotExist:
+        if ciudad:
+            producto.stock = StockCiudad.objects.filter(producto=producto, ciudad=ciudad).first()
+        else:
             producto.stock = None
-    
+
     return render(request, 'actualizarStock.html', context)
 
 @require_auth
 def consultarStock(request):
-    if request.method == 'GET':
-        productos = Producto.objects.all()
-        for producto in productos:
-            try: 
-                producto.stock = Stock.objects.get(producto=producto)
-            except Stock.DoesNotExist:
-                producto.stock = None 
-                
+    ciudad_id = request.GET.get('ciudad')
+    ciudad = Ciudad.objects.filter(id=ciudad_id).first()
+
+    productos = Producto.objects.all()
+    for producto in productos:
+        if ciudad:
+            producto.stock = StockCiudad.objects.filter(producto=producto, ciudad=ciudad).first()
+        else:
+            producto.stock = None
+
     context = {
-        'productos': productos
+        'productos': productos,
+        'ciudades': Ciudad.objects.all(),
+        'ciudad_seleccionada': int(ciudad_id) if ciudad else None,
     }
-    
+
     return render(request, 'consultarStock.html', context)
-    
