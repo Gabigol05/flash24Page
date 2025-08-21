@@ -10,6 +10,16 @@
     <h1>📦 Inventario de Productos</h1>
     <p>Stock disponible en depósito</p>
 
+    <form method="GET">
+        <label for="ciudad">Ciudad:</label>
+        <select name="ciudad" id="ciudad" onchange="this.form.submit()">
+            <option value="">Selecciona una ciudad</option>
+            {% for ciudad in ciudades %}
+                <option value="{{ ciudad.id }}" {% if ciudad.id == ciudad_seleccionada %}selected{% endif %}>{{ ciudad.nombre }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
     {% if productos %}
         <table border="1" cellpadding="8" cellspacing="0">
             <thead>

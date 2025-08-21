@@ -41,6 +41,15 @@
                     
                     <div class="form-grid">
                         <div class="form-group">
+                            <label for="ciudad">Ciudad:</label>
+                            <select name="ciudad" id="ciudad" onchange="location.href='?ciudad='+this.value" required>
+                                <option value="">Selecciona una ciudad</option>
+                                {% for ciudad in ciudades %}
+                                    <option value="{{ ciudad.id }}" {% if ciudad.id == ciudad_seleccionada %}selected{% endif %}>{{ ciudad.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label for="maquina">Máquina a recargar:</label>
                             <select name="maquina" id="maquina" required>
                                 <option value="">Selecciona una máquina</option>
