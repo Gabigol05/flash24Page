@@ -1,0 +1,55 @@
+/* Estilos adicionales para pantallas pequeñas */
+@media (max-width: 360px) {
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    .modal-title {
+        font-size: 1rem;
+    }
+    
+    .modal-body {
+        padding: 10px;
+    }
+    
+    .alert-item {
+        padding: 8px;
+        font-size: 0.9rem;
+    }
+    
+    .ciudad-icon, .span-classes {
+        font-size: 0.9rem;
+    }
+    
+    .ciudadCss select {
+        padding: 10px 15px;
+        font-size: 0.95rem;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Mejora para dispositivos iPhone */
+@supports (-webkit-touch-callout: none) {
+    /* CSS específico para dispositivos iOS */
+    .select-wrapper select {
+        /* Corrige la apariencia de selects en iOS */
+        -webkit-appearance: none;
+        appearance: none;
+        background-position: right 10px center;
+        padding-right: 30px;
+    }
+    
+    .modal-footer {
+        /* Evitar que los botones del modal se superpongan en iOS */
+        padding-bottom: 20px;
+    }
+    
+    /* Ajustes para evitar zoom en inputs en iOS */
+    input, select {
+        font-size: 16px;
+    }
+}

@@ -3,8 +3,10 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Stock Disponible</title>
     <link rel="stylesheet" href="{% static 'consultarStock.css' %}">
+    <link rel="stylesheet" href="{% static 'responsive-fixes.css' %}">
 </head>
 <body>
     {% if alertas_stock %}
@@ -76,20 +78,22 @@
                     </a>
                 </button>
                 <div class="filtroCiudad">
-                    <form method="GET">
-                        <div>
+                    <form method="GET" class="ciudad-form">
+                        <div class="ciudad-selector-container">
                             <label for="ciudad" class="ciudadCss">
                                 <span class="ciudad-icon">📍</span> <span class="span-classes">Ciudad:</span>
                             </label>
-                            <select class="ciudadCss custom-select" name="ciudad" id="ciudad" onchange="this.form.submit()">
-                                <option value="1">Selecciona una ciudad</option>
-                                {% for ciudad in ciudades %}
-                                    <option value="{{ ciudad.id }}" {% if ciudad.id == ciudad_seleccionada %}selected{% endif %}>{{ ciudad.nombre }}</option>
-                                {% endfor %}
-                            </select>
+                            <div class="select-wrapper">
+                                <select class="ciudadCss custom-select" name="ciudad" id="ciudad" onchange="this.form.submit()">
+                                    <option value="1">Selecciona una ciudad</option>
+                                    {% for ciudad in ciudades %}
+                                        <option value="{{ ciudad.id }}" {% if ciudad.id == ciudad_seleccionada %}selected{% endif %}>{{ ciudad.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
-                </form>
-            </div>
+                    </form>
+                </div>
         </div>
         
 
@@ -107,16 +111,16 @@
                 <tbody>
                     {% for producto in productos %}
                         <tr>
-                            <td>{{ producto.nombre }}</td>
-                            <td>{{ producto.marca }}</td>
-                            <td class="
+                            <td data-label="Producto">{{ producto.nombre }}</td>
+                            <td data-label="Marca">{{ producto.marca }}</td>
+                            <td data-label="Stock Disponible" class="
                                 {% if producto.stock and producto.stock.cantidadDisponible > 50 %}stock-high
                                 {% elif producto.stock and producto.stock.cantidadDisponible > 20 %}stock-medium
                                 {% else %}stock-low{% endif %}
                             ">
                                 {{ producto.stock.cantidadDisponible|default:0 }} unidades
                             </td>
-                            <td class="
+                            <td data-label="Estado" class="
                                 {% if producto.stock and producto.stock.cantidadDisponible > 50 %}stock-high
                                 {% elif producto.stock and producto.stock.cantidadDisponible > 20 %}stock-medium
                                 {% else %}stock-low{% endif %}
@@ -129,7 +133,7 @@
                                     Bajo
                                 {% endif %}
                             </td>
-                            <td>${{ producto.precioUnitario }}</td>
+                            <td data-label="Precio">${{ producto.precioUnitario }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -167,16 +171,14 @@
                     <tbody>
                         {% for stock in alertas_stock %}
                         <tr class="{% if stock.cantidadDisponible <= 5 %}alerta-critica{% else %}alerta-media{% endif %}">
-                            <td>{{ stock.producto.nombre }}</td>
-                            <td>{{ stock.ciudad.nombre }}</td>
-                            <td>{{ stock.cantidadDisponible }}</td>
-                            <td>{{ stock.fecha_ultima_alerta|date:"d/m/Y H:i" }}</td>
-                            <td>
-                                <button class="btn btn-sm btn-secondary">
+                            <td data-label="Producto">{{ stock.producto.nombre }}</td>
+                            <td data-label="Ciudad">{{ stock.ciudad.nombre }}</td>
+                            <td data-label="Stock">{{ stock.cantidadDisponible }} unidades</td>
+                            <td data-label="Fecha">{{ stock.fecha_ultima_alerta|date:"d/m/Y H:i" }}</td>
+                            <td data-label="Acciones">
                                 <a href="{% url 'registrarCompra' %}?producto={{ stock.producto.id }}" class="btn btn-sm btn-primary">
                                     Registrar Compra
                                 </a>
-                                </button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -203,8 +205,6 @@
         }
     </script>
     {% endif %}
+    <script src="{% static 'mobile-touch.js' %}"></script>
 </body>
 </html>
-
-
-
