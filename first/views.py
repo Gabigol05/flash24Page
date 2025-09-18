@@ -220,6 +220,7 @@ def actualizarStock(request):
         'usuarios': Usuario.objects.all(),
         'ciudades': Ciudad.objects.all(),
         'ciudad_seleccionada': int(ciudad_id) if ciudad else None,
+        'ciudad': ciudad,  # Agregar la ciudad al contexto
     }
 
     for producto in context['productos']:
@@ -228,7 +229,7 @@ def actualizarStock(request):
         else:
             producto.stock = None
 
-    return render(request, 'actualizarStock.html', context)
+    return render(request, 'actualizarStock.html', context,)
 
 @require_auth
 def consultarStock(request):
@@ -239,13 +240,43 @@ def consultarStock(request):
     for producto in productos:
         if ciudad:
             producto.stock = StockCiudad.objects.filter(producto=producto, ciudad=ciudad).first()
+            # Verificar alertas para cada producto
+            if producto.stock:
+                producto.stock.verificar_alertas()
         else:
             producto.stock = None
+    
+    # Obtener productos con alertas
+    alertas_stock = []
+    if ciudad:
+        alertas_stock = StockCiudad.objects.filter(
+            ciudad=ciudad,
+            estado_alerta=True
+        ).select_related('producto', 'ciudad')
 
     context = {
         'productos': productos,
         'ciudades': Ciudad.objects.all(),
         'ciudad_seleccionada': int(ciudad_id) if ciudad else None,
+        'alertas_stock': alertas_stock,
+        'total_alertas': len(alertas_stock),
     }
 
     return render(request, 'consultarStock.html', context)
+
+@require_auth
+def dashboard(request):
+    # Obtener productos con alerta
+    productos_alerta = StockCiudad.objects.filter(
+        estado_alerta=True
+    ).select_related('producto', 'ciudad')
+    
+    # Resto del código del dashboard...
+    
+    context = {
+        'alertas_stock': productos_alerta,
+        'total_alertas': productos_alerta.count(),
+        # Resto del contexto...
+    }
+    
+    return render(request, 'dashboard.html', context)

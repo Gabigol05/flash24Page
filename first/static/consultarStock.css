@@ -1,48 +1,385 @@
 /* ===== Estilos base para la tabla de stock ===== */
 
+/* Estilos base y fondo */
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
     color: #333;
-    margin: 20px;
+    margin: 0;
+    padding: 0;
 }
 
+.btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.form-group {
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+}
+
+.form-group label {
+    margin-bottom: 0;
+    margin-right: 10px;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.95rem;
+}
+
+.btn a {
+    color: white;
+    text-decoration: none;
+}
+.btn-secondary {
+    background: linear-gradient(135deg, #495057 0%, #495057 100%);
+}
+
+
 h1 {
-    margin-bottom: 5px;
+    color: #ffffff;
+    font-size: 2.3rem;
+    font-weight: 700;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
 
 p {
     margin-top: 0;
     margin-bottom: 20px;
     color: #666;
+    font-size: 1.1rem;
+    text-align: center;
+    margin-bottom: 30px;
+}
+/* Header con controles en línea */
+.header-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
 }
 
+/* Selector de ciudad moderno */
+.ciudadCss {
+    color: #4b2996;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0;
+}
+
+.ciudadCss label {
+    color: #4b2996;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-right: 8px;
+    margin-bottom: 0;
+}
+
+.ciudadCss select {
+    padding: 12px 18px;
+    border-radius: 8px;
+    border: 2px solid #6c63ff;
+    background: #f8f9fa;
+    color: #4b2996;
+    font-size: 1.05rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+
+}
+
+.ciudadCss select:focus {
+    border-color: #764ba2;
+    box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.15);
+    background: #eae8ee;
+}
+
+.ciudadCss select option {
+    color: #4b2996;
+    background: #fff;
+    font-weight: 500;
+}
 /* Tabla de productos */
 table {
     width: 100%;
     border-collapse: collapse;
     background-color: white;
+    width: 90%;
+    margin: 0 auto 30px auto;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
-thead {
-    background-color: #343a40;
+/* Estilos para la sección de alertas */
+.alertas-container {
+    width: 90%;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.alertas-container h3 {
+    color: #c0a1a0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+/* Estilos para el Modal de Alerta */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+.filtroCiudad {
+    text-align: right;
+}
+
+.modal-container {
+    background-color: rgb(231, 48, 48);
+    width: 90%;
+    max-width: 500px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.span-classes {
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: white;
+    font-size: large;
+    text-align: end;
+}
+.modal-header {
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+    border-color: color-mix(in hsl shorter hue, color percentage, color percentage);
+    text-align: center;
+
+}
+.modal-text {
+    color: white;
+}
+.modal-title {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.modal-close:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.modal-body {
+    padding: 20px;
+}; 
+ p {
+    color: #e6d7d7;
+}
+
+
+.modal-footer {
+    border-top: 1px solid #eee;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-btn {
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.modal-btn-primary {
+    background-color: #4b2996;
     color: white;
 }
 
-thead th {
-    padding: 10px;
-    text-align: left;
+.modal-btn-primary:hover {
+    background-color: #3a1f75;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
+
+.modal-btn-secondary {
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.modal-btn-secondary:hover {
+    background-color: #dde2e6;
+}
+
+.alert-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 15px 0;
+}
+
+.alert-item {
+    color: #f6f5fd;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.alert-critical {
+    background-color: rgba(172, 140, 134, 0.2);
+    border-left: 4px solid #c9a3a2;
+}
+
+.alert-warning {
+    background-color: rgba(237, 156, 156, 0.6);
+    border-left: 4px rgb(113, 57, 57);
+}
+
+.alert-count {
+    background-color: #dab5b3;
+    color: white;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.tabla-alertas table {
+    width: 100%;
+    margin: 0;
+}
+
+.alerta-critica {
+    background-color: rgba(239, 216, 212, 0.2);
+    font-weight: bold;
+}
+
+.alerta-media {
+    background-color: rgba(255, 193, 7, 0.2);
+}
+
+.sin-alertas {
+    text-align: center;
+    color: #28a745;
+    padding: 15px;
+    font-weight: 500;
+}
+
+thead {
+    
+    background-color: #343a40;
+    color: white;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-bottom: 2px solid #e9ecef; 
+    thead th {
+        padding: 10px;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+}}
 
 tbody td {
     padding: 10px;
     border-bottom: 1px solid #dee2e6;
+    padding: 15px 20px;
+    text-align: left;
+    font-size: 1rem;
 }
 
 tfoot td {
     padding: 10px;
     background-color: #f1f1f1;
     font-weight: bold;
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    text-align: right;
+    border-top: 2px solid #e9ecef;
 }
 
 /* Estados de stock */
@@ -57,6 +394,159 @@ tfoot td {
 }
 
 .stock-low {
+    
     color: #dc3545; /* rojo */
     font-weight: bold;
 }
+
+/* Estado vacío */
+div > div {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+div > div .icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+div > div h3 {
+    font-size: 1.5rem;
+        text-align: center;
+        padding: 60px 20px;
+        color: #f6f5fd;
+
+div > div p {
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+/* Estilos para alertas */
+.alerta-critica {
+    background-color: rgba(255, 99, 71, 0.2);
+    font-weight: bold;
+}
+
+.alerta-media {
+    background-color: rgba(255, 193, 7, 0.2);
+}
+
+.alertas-container {
+    margin-bottom: 30px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.alertas-container h3 {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    color: #b59392;
+}
+
+/* Estilos para la notificación toast */
+.toast-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transform: translateY(150%);
+    transition: transform 0.3s ease-out;
+    overflow: hidden;
+}
+
+.toast-notification.mostrar {
+    transform: translateY(0);
+}
+
+.toast-header {
+    background-color: #e0b5b3;
+    color: white;
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.toast-icon {
+    font-size: 1.2rem;
+    margin-right: 8px;
+}
+
+.toast-header h4 {
+    margin: 0;
+    flex-grow: 1;
+}
+
+.toast-header button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.toast-body {
+    padding: 15px;
+}
+
+.toast-body ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.toast-link {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+    color: #4b2996;
+    text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header-controls {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    .form-group {
+        justify-content: center;
+    }
+    form {
+        max-width: 100%;
+        padding: 10px;
+        color: #4b2996;
+    }
+    table {
+        font-size: 0.9rem;
+    }
+    th, td {
+        padding: 10px 8px;
+    }
+}
+
+        .container-stock {
+            padding: 15px 10px 15px 10px;
+        }
+        form {
+            max-width: 100%;
+        }
+        table {
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 10px 8px;
+    th, td {
+        padding: 6px 4px;
+    }
+}}

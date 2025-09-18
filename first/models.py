@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
+from django.utils import timezone
 
 # Create your models here.
 
@@ -110,10 +111,16 @@ class DetalleCompra(models.Model):
         return f"{self.cantidad}x {self.producto.nombre} - ${self.subtotal}"
 
 class StockCiudad(models.Model):
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='stock_por_ciudad')
-    ciudad = models.ForeignKey(Ciudad, on_delete=models.CASCADE, related_name='stock_por_producto')
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    ciudad = models.ForeignKey(Ciudad, on_delete=models.CASCADE)
     cantidadDisponible = models.IntegerField(default=0)
-
+    
+    # Nuevos campos para manejar alertas
+    estado_alerta = models.BooleanField(default=False)
+    umbral_alerta = models.IntegerField(default=15)
+    fecha_ultima_alerta = models.DateTimeField(null=True, blank=True)
+    mensaje_alerta = models.TextField(blank=True)
+    
     class Meta:
         unique_together = ('producto', 'ciudad')
 
@@ -124,12 +131,16 @@ class StockCiudad(models.Model):
         """Actualiza el stock del producto en la ciudad (aumenta)"""
         self.cantidadDisponible += cantidad
         self.save()
+        # Verificar si hay alertas después de actualizar el stock
+        self.verificar_alertas()
 
     def reducir_stock(self, cantidad):
         """Reduce el stock del producto en la ciudad (venta)"""
         if self.cantidadDisponible >= cantidad:
             self.cantidadDisponible -= cantidad
             self.save()
+            # Verificar si hay alertas después de reducir el stock
+            self.verificar_alertas()
             return True
         return False
 
@@ -145,6 +156,22 @@ class StockCiudad(models.Model):
         """Retorna el porcentaje de stock disponible (para inventario)"""
         stock_maximo = 100  # Ejemplo
         return (self.cantidadDisponible / stock_maximo) * 100
+
+    def verificar_alertas(self):
+        if self.cantidadDisponible <= self.umbral_alerta and not self.estado_alerta:
+            # Activar alerta
+            self.estado_alerta = True
+            self.fecha_ultima_alerta = timezone.now()
+            self.mensaje_alerta = f"Stock bajo del producto {self.producto.nombre}: quedan {self.cantidadDisponible} unidades"
+            self.save(update_fields=['estado_alerta', 'fecha_ultima_alerta', 'mensaje_alerta'])
+            return True
+        elif self.cantidadDisponible > self.umbral_alerta and self.estado_alerta:
+            # Desactivar alerta
+            self.estado_alerta = False
+            self.mensaje_alerta = ""
+            self.save(update_fields=['estado_alerta', 'mensaje_alerta'])
+            return False
+        return self.estado_alerta
 
 class RecargaMaquina(models.Model):
     """Modelo para registrar las recargas de máquinas expendedoras"""
@@ -195,6 +222,6 @@ class RecargaMaquina(models.Model):
     
     class Meta:
         ordering = ['-fechaHora']
-    
+
 
 

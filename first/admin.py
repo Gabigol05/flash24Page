@@ -63,7 +63,7 @@ class StockCiudadAdmin(admin.ModelAdmin):
     list_display = ['producto', 'ciudad', 'cantidadDisponible']
     search_fields = ['producto__nombre', 'ciudad__nombre']
     list_filter = ['producto__marca', 'ciudad']
-    readonly_fields = ['producto', 'ciudad']
+    list_select_related = ['producto', 'ciudad']
 
 @admin.register(RecargaMaquina)
 class RecargaMaquinaAdmin(admin.ModelAdmin):
