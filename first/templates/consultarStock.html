@@ -3,10 +3,9 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Stock Disponible</title>
-    <link rel="stylesheet" href="{% static 'consultarStock.css' %}">
-    <link rel="stylesheet" href="{% static 'responsive-fixes.css' %}">
+    <link rel="stylesheet" href="{% static 'consultarStock.css' %}?v=3">
 </head>
 <body>
     {% if alertas_stock %}
@@ -44,27 +43,55 @@
     <script>
         // Mostrar el modal automáticamente cuando se carga la página
         document.addEventListener('DOMContentLoaded', function() {
-            // Verificar si el usuario cerró el modal recientemente (hace menos de una hora)
-            const lastClosed = localStorage.getItem('alertModalClosed');
-            if (!lastClosed || (Date.now() - lastClosed > 1)) {
-                setTimeout(function() {
-                    document.getElementById('alertModal').classList.add('show');
-                }, 500);
+            const modal = document.getElementById('alertModal');
+            if (!modal) return; // no hay alertas
+
+            const params = new URLSearchParams(window.location.search);
+            const ciudadParam = params.get('ciudad');
+            const ONE_MINUTE = 60 * 1000;
+
+            // Si la carga viene con ?ciudad=..., queremos mostrar la alerta para esa ciudad
+            // salvo que el usuario la haya cerrado en las últimas 4 horas para la misma ciudad.
+            function shouldShowForCity(ciudad) {
+                const key = 'alertModalClosed_city_' + ciudad;
+                const last = localStorage.getItem(key);
+                return (!last) || (Date.now() - Number(last) > ONE_MINUTE);
             }
+
+            const generalLast = localStorage.getItem('alertModalClosed');
+            let show = false;
+
+            if (ciudadParam) {
+                if (shouldShowForCity(ciudadParam)) show = true;
+            } else {
+                if (!generalLast || (Date.now() - Number(generalLast) > FOUR_HOURS)) show = true;
+            }
+
+            if (show) {
+                setTimeout(function() { modal.classList.add('show'); }, 500);
+            }
+
+            // Cerrar al hacer click fuera
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) closeModal();
+            });
         });
-        // (60 * 60 * 1000) Funcion para que lo cierre despues de una hora
+
         // Función para cerrar el modal
         function closeModal() {
-            document.getElementById('alertModal').classList.remove('show');
-            // Guardar en localStorage que el usuario cerró el modal
-            localStorage.setItem('alertModalClosed', Date.now());
-        }
+            const modal = document.getElementById('alertModal');
+            if (!modal) return;
+            modal.classList.remove('show');
 
-        document.getElementById('alertModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
+            const params = new URLSearchParams(window.location.search);
+            const ciudadParam = params.get('ciudad');
+            const now = Date.now();
+            if (ciudadParam) {
+                localStorage.setItem('alertModalClosed_city_' + ciudadParam, now);
             }
-        });
+            // También guardamos la marca general
+            localStorage.setItem('alertModalClosed', now);
+        }
     </script>
     {% endif %}
     <div class="container-stock">
@@ -78,26 +105,25 @@
                     </a>
                 </button>
                 <div class="filtroCiudad">
-                    <form method="GET" class="ciudad-form">
-                        <div class="ciudad-selector-container">
+                    <form method="GET">
+                        <div>
                             <label for="ciudad" class="ciudadCss">
                                 <span class="ciudad-icon">📍</span> <span class="span-classes">Ciudad:</span>
                             </label>
-                            <div class="select-wrapper">
-                                <select class="ciudadCss custom-select" name="ciudad" id="ciudad" onchange="this.form.submit()">
-                                    <option value="1">Selecciona una ciudad</option>
-                                    {% for ciudad in ciudades %}
-                                        <option value="{{ ciudad.id }}" {% if ciudad.id == ciudad_seleccionada %}selected{% endif %}>{{ ciudad.nombre }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
+                            <select class="ciudadCss custom-select" name="ciudad" id="ciudad" onchange="this.form.submit()">
+                                <option value="1">Selecciona una ciudad</option>
+                                {% for ciudad in ciudades %}
+                                    <option value="{{ ciudad.id }}" {% if ciudad.id == ciudad_seleccionada %}selected{% endif %}>{{ ciudad.nombre }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                    </form>
-                </div>
+                </form>
+            </div>
         </div>
         
 
         {% if productos %}
+            <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
@@ -143,6 +169,7 @@
                     </tr>
                 </tfoot>
             </table>
+            </div>
         {% else %}
             <div>
                 <div>📦</div>
@@ -158,6 +185,7 @@
         
         {% if alertas_stock %}
             <div class="tabla-alertas">
+                <div class="table-responsive">
                 <table class="table table-striped">
                     <thead>
                         <tr>
@@ -173,17 +201,20 @@
                         <tr class="{% if stock.cantidadDisponible <= 5 %}alerta-critica{% else %}alerta-media{% endif %}">
                             <td data-label="Producto">{{ stock.producto.nombre }}</td>
                             <td data-label="Ciudad">{{ stock.ciudad.nombre }}</td>
-                            <td data-label="Stock">{{ stock.cantidadDisponible }} unidades</td>
+                            <td data-label="Stock">{{ stock.cantidadDisponible }}</td>
                             <td data-label="Fecha">{{ stock.fecha_ultima_alerta|date:"d/m/Y H:i" }}</td>
                             <td data-label="Acciones">
+                                <button class="btn btn-sm btn-secondary">
                                 <a href="{% url 'registrarCompra' %}?producto={{ stock.producto.id }}" class="btn btn-sm btn-primary">
                                     Registrar Compra
                                 </a>
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
             </div>
         {% else %}
             <p class="sin-alertas">No hay alertas de stock bajo actualmente.</p>
@@ -205,6 +236,8 @@
         }
     </script>
     {% endif %}
-    <script src="{% static 'mobile-touch.js' %}"></script>
 </body>
 </html>
+
+
+

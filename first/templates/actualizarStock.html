@@ -11,17 +11,23 @@
     <div class="main-container">
         <!-- Sidebar -->
         <div class="sidebar">
-            <h2>Gestiona el stock y registra las recargas de productos</h2>
-            <p>Sistema de gestión de inventario para máquinas expendedoras</p>
+            <div class="sidebar-header">
+                <a href="{% url 'index' %}" class="btn btn-secondary back-home-btn">
+                    <span>🏠</span>
+                    <span>Volver al Inicio</span>
+                </a>
+            </div>
         </div>
 
         <!-- Contenido principal -->
         <div class="main-content">
             <!-- Header -->
+            
             <div class="content-header">
                 <h1>🔄 Recarga de Máquinas Expendedoras</h1>
                 <p>Registra las recargas y gestiona el inventario de productos</p>
             </div>
+            
 
             <!-- Alertas -->
             {% if messages %}
@@ -86,10 +92,6 @@
                             <span>✅</span>
                             <span>Registrar Recarga</span>
                         </button>
-                        <a href="{% url 'index' %}" class="btn btn-secondary">
-                            <span>🏠</span>
-                            <span>Volver al Inicio</span>
-                        </a>
                     </div>
                 </form>
             </div>
