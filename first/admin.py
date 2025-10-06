@@ -14,17 +14,23 @@ class UsuarioAdmin(admin.ModelAdmin):
     list_display = ['nombre', 'apellido', 'dni', 'telefono', 'is_active']
     search_fields = ['nombre', 'apellido', 'dni']
     list_filter = ['is_active']
-    readonly_fields = ['password']
+    # Quitar readonly_fields = ['password']  ← ELIMINAR ESTA LÍNEA
     fieldsets = (
         ('Información Personal', {
             'fields': ('nombre', 'apellido', 'dni', 'telefono')
         }),
         ('Autenticación', {
-            'fields': ('password', 'is_active'),
-            'description': 'La contraseña se hashea automáticamente al guardar'
+            'fields': ('password', 'is_active'),  # password ahora será editable
+            'description': 'Escribe la contraseña que quieras asignar'
         }),
     )
-
+    
+    # Añadir este método para hashear la contraseña automáticamente
+    def save_model(self, request, obj, form, change):
+        # Si hay una contraseña nueva, hashearla
+        if 'password' in form.changed_data and obj.password:
+            obj.set_password(obj.password)
+        super().save_model(request, obj, form, change)
 @admin.register(Proveedor)
 class ProveedorAdmin(admin.ModelAdmin):
     list_display = ['nombre', 'telefono', 'email']
