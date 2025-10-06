@@ -112,6 +112,7 @@
 
         function agregarDetalle() {
             contadorDetalles++;
+            console.log(`🆕 Agregando detalle #${contadorDetalles}`);
             const container = document.getElementById('detallesContainer');
             
             const detalleHTML = `
@@ -127,8 +128,8 @@
     
                         <div class="precio-popover" id="popover-${contadorDetalles}">
                             <input type="number" class="input-precio-popover" id="input-precio-${contadorDetalles}" step="0.01" min="0.01">
-                            <button class="btn-guardar-popover" onclick="guardarPrecioPopover(${contadorDetalles})">✓</button>
-                            <button class="btn-cancelar-popover" onclick="cerrarPopover(${contadorDetalles})">✕</button>
+                            <button type="button" class="btn-guardar-popover" onclick="guardarPrecioPopover(${contadorDetalles})">✓</button>
+                            <button type="button" class="btn-cancelar-popover" onclick="cerrarPopover(${contadorDetalles})">✕</button>
                         </div>
                     </div>
                     <input type="number" name="subtotal_${contadorDetalles}" placeholder="Subtotal" step="0.01" readonly>
@@ -195,22 +196,7 @@
 
 
 
-        function guardarPrecioPopover(id) {
-            const nuevoValor = document.getElementById(`input-precio-${id}`).value; 
-            if (parseFloat(nuevoValor) <= 0) {
-                alert('El precio debe ser mayor a 0');
-                return;
-            }
-            
-            // Actualizar el input principal
-            document.querySelector(`#detalle-${id} input[name="precio_unitario_${id}"]`).value = nuevoValor;
-            
-            // Recalcular subtotal
-            calcularSubtotal(id);
-            
-            // Cerrar popover
-            cerrarPopover(id);
-        }
+        
         function cerrarPopover(productoId) {
             const popover = document.getElementById(`popover-${productoId}`);
             popover.style.display = 'none';
@@ -226,6 +212,63 @@
                 }
             }
         }
+
+        function guardarPrecioPopover(id) {
+            const nuevoValor = document.getElementById(`input-precio-${id}`).value;
+            
+            if (parseFloat(nuevoValor) <= 0) {
+                alert('El precio debe ser mayor a 0');
+                return;
+            }
+            
+            // 1) Actualizar el precio mostrado en el input principal (por detalle)
+            document.querySelector(`#detalle-${id} input[name="precio_unitario_${id}"]`).value = nuevoValor;
+            
+            // 2) Obtener el ID REAL del producto seleccionado en este detalle
+            const select = document.querySelector(`#detalle-${id} select[name="producto_${id}"]`);
+            const productId = select ? select.value : '';
+            if (!productId) {
+                alert('Seleccioná un producto antes de guardar el precio.');
+                return;
+            }
+            
+            // 3) Crear/actualizar inputs ocultos por productId (precio global)
+            const form = document.getElementById('compraForm');
+            
+            // Flag de cambio
+            let hiddenChanged = document.getElementById(`precio-changed-${productId}`);
+            if (!hiddenChanged) {
+                hiddenChanged = document.createElement('input');
+                hiddenChanged.type = 'hidden';
+                hiddenChanged.id = `precio-changed-${productId}`;
+                hiddenChanged.name = `precio_changed_${productId}`; // lo espera el backend
+                form.appendChild(hiddenChanged);
+            }
+            hiddenChanged.value = '1';
+            
+            // Nuevo precio
+            let hiddenNewPrice = document.getElementById(`nuevo-precio-${productId}`);
+            if (!hiddenNewPrice) {
+                hiddenNewPrice = document.createElement('input');
+                hiddenNewPrice.type = 'hidden';
+                hiddenNewPrice.id = `nuevo-precio-${productId}`;
+                hiddenNewPrice.name = `nuevo_precio_${productId}`; // lo espera el backend
+                form.appendChild(hiddenNewPrice);
+            }
+            hiddenNewPrice.value = nuevoValor;
+            
+            // 4) Recalcular subtotal y cerrar popover
+            calcularSubtotal(id);
+            cerrarPopover(id);
+        }
+
+            document.addEventListener('click', function(event) {
+                if (event.target.classList.contains('btn-guardar-popover')) {
+                    console.log('Botón clickeado:', event.target);
+                    console.log('Popover padre:', event.target.closest('.precio-popover'));
+                    console.log('ID del popover:', event.target.closest('.precio-popover').id);
+                }
+            });
 
 //Fin logica de popover
 

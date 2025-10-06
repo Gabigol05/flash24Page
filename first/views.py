@@ -80,7 +80,9 @@ def registrarCompra(request):
                 usuarioEncargado=usuario,
                 proveedor=proveedor
             )
-            
+            # Procesar actualizaciones de precios ANTES de crear la compra
+            actualizar_precios_productos(request.POST)
+
             # Procesar detalles de la compra
             total_calculado = 0
             detalles_procesados = 0
@@ -155,6 +157,35 @@ def registrarCompra(request):
     context['productos_json'] = json.dumps(productos_json)
     
     return render(request, 'registrarCompra.html', context)
+
+def actualizar_precios_productos(post_data):
+    """
+    Función que busca y actualiza precios modificados
+    """
+    for key, value in post_data.items():
+        # Buscar campos que empiecen con 'nuevo_precio_'
+        if key.startswith('nuevo_precio_') and value:
+            try:
+                # Extraer el ID del producto del nombre del campo
+                producto_id = key.split('_')[2]  # nuevo_precio_123 -> 123
+                
+                # Verificar si este precio realmente cambió
+                input_element_changed = post_data.get(f'precio_changed_{producto_id}', False)
+                
+                if input_element_changed:
+                    # Obtener el producto y actualizar su precio
+                    producto = Producto.objects.get(id=producto_id)
+                    nuevo_precio = float(value)
+                    
+                    # Validación en backend
+                    if nuevo_precio > 0:
+                        producto.precioUnitario = nuevo_precio
+                        producto.save()
+                        
+            except (Producto.DoesNotExist, ValueError) as e:
+                # Log del error pero no interrumpir el proceso
+                print(f"Error actualizando precio: {e}")
+                continue
 
 @require_auth
 def actualizarStock(request):
