@@ -121,7 +121,16 @@
                         ${productos.map(p => `<option value="${p.id}" data-precio="${p.precioUnitario}">${p.nombre} - ${p.marca}</option>`).join('')}
                     </select>
                     <input type="number" name="cantidad_${contadorDetalles}" placeholder="Cantidad" min="1" required onchange="calcularSubtotal(${contadorDetalles})">
-                    <input type="number" name="precio_unitario_${contadorDetalles}" placeholder="Precio unitario" step="0.01" min="0" required onchange="calcularSubtotal(${contadorDetalles})">
+                    <div class="precio-container">
+                        <input type="number" name="precio_unitario_${contadorDetalles}" placeholder="Precio unitario" step="0.01" min="0" required onchange="calcularSubtotal(${contadorDetalles})" readonly>
+                        <button type="button" class="btn-editar-precio" onclick="toggleAbrirPopover(${contadorDetalles})">✏️</button>
+    
+                        <div class="precio-popover" id="popover-${contadorDetalles}">
+                            <input type="number" class="input-precio-popover" id="input-precio-${contadorDetalles}" step="0.01" min="0.01">
+                            <button class="btn-guardar-popover" onclick="guardarPrecioPopover(${contadorDetalles})">✓</button>
+                            <button class="btn-cancelar-popover" onclick="cerrarPopover(${contadorDetalles})">✕</button>
+                        </div>
+                    </div>
                     <input type="number" name="subtotal_${contadorDetalles}" placeholder="Subtotal" step="0.01" readonly>
                     <button type="button" class="btn btn-danger" onclick="eliminarDetalle(${contadorDetalles})">🗑️</button>
                 </div>
@@ -140,16 +149,85 @@
         function actualizarPrecio(id) {
             const select = document.querySelector(`#detalle-${id} select`);
             const precioInput = document.querySelector(`#detalle-${id} input[name="precio_unitario_${id}"]`);
+            const precioPopoverInput = document.getElementById(`input-precio-${id}`);
             const cantidadInput = document.querySelector(`#detalle-${id} input[name="cantidad_${id}"]`);
             
             const option = select.options[select.selectedIndex];
             if (option.value) {
                 precioInput.value = option.dataset.precio;
+                precioPopoverInput.value = option.dataset.precio; // Sincronizar el popover
+                // Si ya hay cantidad ingresada, recalcular subtotal
                 if (cantidadInput.value) {
                     calcularSubtotal(id);
                 }
             }
         }
+
+//Logica de Popover para cambiar de precios
+
+        // Variable para rastrear qué popover está abierto
+        let popoverAbierto = null;
+
+        function toggleAbrirPopover(productoId) {
+            // Cerrar cualquier popover abierto
+            if (popoverAbierto && popoverAbierto !== productoId) {
+                cerrarPopover(popoverAbierto);
+            }
+            
+            const popover = document.getElementById(`popover-${productoId}`);
+            const input = document.getElementById(`input-precio-${productoId}`);
+            
+            if (popover.style.display === 'none' || !popover.style.display) {
+                // Mostrar popover
+                popover.style.display = 'block';
+                input.focus();
+                input.select(); // Seleccionar todo el texto para edición rápida
+                popoverAbierto = productoId;
+                
+                // Cerrar si se hace clic fuera del popover
+                setTimeout(() => {
+                    document.addEventListener('click', cerrarPopoverGlobal);
+                }, 100);
+            } else {
+                cerrarPopover(productoId);
+            }
+        }
+
+
+
+        function guardarPrecioPopover(id) {
+            const nuevoValor = document.getElementById(`input-precio-${id}`).value; 
+            if (parseFloat(nuevoValor) <= 0) {
+                alert('El precio debe ser mayor a 0');
+                return;
+            }
+            
+            // Actualizar el input principal
+            document.querySelector(`#detalle-${id} input[name="precio_unitario_${id}"]`).value = nuevoValor;
+            
+            // Recalcular subtotal
+            calcularSubtotal(id);
+            
+            // Cerrar popover
+            cerrarPopover(id);
+        }
+        function cerrarPopover(productoId) {
+            const popover = document.getElementById(`popover-${productoId}`);
+            popover.style.display = 'none';
+            popoverAbierto = null;
+            document.removeEventListener('click', cerrarPopoverGlobal);
+        }
+
+        function cerrarPopoverGlobal(event) {
+            // Cerrar popover si se hace clic fuera de él
+            if (!event.target.closest('.precio-popover') && !event.target.closest('.btn-editar-precio')) {
+                if (popoverAbierto) {
+                    cerrarPopover(popoverAbierto);
+                }
+            }
+        }
+
+//Fin logica de popover
 
         function calcularSubtotal(id) {
             const cantidad = parseFloat(document.querySelector(`#detalle-${id} input[name="cantidad_${id}"]`).value) || 0;

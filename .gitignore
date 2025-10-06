@@ -1,0 +1,49 @@
+# --- Archivos de entorno / secretos ---
+.env
+.env.*
+!.env.example
+
+# --- Virtualenvs ---
+venv/
+.envrc
+
+# --- Python cache/artefactos ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# --- Django: archivos generados ---
+# Base de datos local (si usás SQLite en dev)
+db.sqlite3
+# Archivos estáticos recolectados en prod
+staticfiles/
+# Media local (si guardás subidas en dev)
+media/
+
+# --- Logs ---
+*.log
+logs/
+*.sqlite3-journal
+
+# --- Configs de IDE/Editor ---
+.vscode/
+.idea/
+*.code-workspace
+
+# --- Sistemas operativos ---
+.DS_Store
+Thumbs.db
+
+# --- Node (si usás tooling de front) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

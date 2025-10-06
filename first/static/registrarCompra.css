@@ -295,3 +295,79 @@ body {
         margin-bottom: 10px;
     }
 }
+
+.precio-container {
+    position: relative;
+    display: inline-block;
+}
+
+.btn-editar-precio {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #007bff;
+    padding: 2px 5px;
+    margin-left: 5px;
+}
+
+.precio-popover {
+    position: absolute;
+    top: -40px;  /* Flota arriba del precio */
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: none;  /* Oculto por defecto */
+    z-index: 1000;
+    white-space: nowrap;
+}
+
+/* Flecha pequeña que apunta hacia abajo */
+.precio-popover::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: white;
+}
+
+.input-precio-popover {
+    width: 80px;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 13px;
+}
+
+.btn-guardar-popover, .btn-cancelar-popover {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    margin-left: 4px;
+    padding: 2px 4px;
+}
+
+.btn-guardar-popover {
+    color: #28a745;
+}
+
+.btn-cancelar-popover {
+    color: #dc3545;
+}
+
+.btn-guardar-popover:hover {
+    background: #e8f5e8;
+    border-radius: 3px;
+}
+
+.btn-cancelar-popover:hover {
+    background: #fdeaea;
+    border-radius: 3px;
+}
