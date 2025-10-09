@@ -62,23 +62,51 @@
                     </div>
                 </div>
 
-                <!-- Sección 2: Detalles de Productos -->
+                <!-- Sección 2: Editor Único de Producto (sin lista larga) -->
                 <div class="form-section">
-                    <h2>📦 Detalles de Productos</h2>
-                    
-                    <div class="detalles-container" id="detallesContainer">
-                        <!-- Los detalles se agregarán dinámicamente aquí -->
-                    </div>
+                    <h2>📦 Seccion de ingreso de productos </h2>
 
-                    <button type="button" class="btn btn-success" onclick="agregarDetalle()">
-                        ➕ Agregar Producto
-                    </button>
+                    <div class="detalle-editor" id="detalleEditor">
+                        <!-- Producto -->
+                        <div class="form-group">
+                            <label for="editor-producto">Producto *</label>
+                            <select id="editor-producto">
+                                <option value="">Seleccione producto</option>
+                                <!-- opciones se cargan desde productos_json -->
+                            </select>
+                        </div>
+
+                        <!-- Cantidad -->
+                        <div class="form-group">
+                            <label for="editor-cantidad">Cantidad *</label>
+                            <input type="number" id="editor-cantidad" placeholder="Cantidad" min="1" step="1">
+                        </div>
+
+                        <!-- Precio con popover de override -->
+                        <div class="form-group precio-container">
+                            <label for="editor-precio">Precio unitario </label>
+                            <div class="precio-inline">
+                                <input type="number" id="editor-precio" placeholder="Precio unitario" step="0.01" min="0.01" readonly>
+                                <button type="button" class="btn-editar-precio" id="btnEditarPrecioEditor">✏️</button>
+                            </div>
+                            <div class="precio-popover" id="popover-editor" style="display:none;">
+                                <input type="number" class="input-precio-popover" id="input-precio-editor" step="0.01" min="0.01">
+                                <button type="button" class="btn-guardar-popover" id="btnGuardarPrecioEditor">✓</button>
+                                <button type="button" class="btn-cancelar-popover" id="btnCancelarPrecioEditor">✕</button>
+                            </div>
+                        </div>
+
+                        <!-- Acciones del editor -->
+                        <div class="editor-actions">
+                            <button type="button" class="btn btn-success" id="btnAgregar">➕ Agregar</button>
+                        </div>
+
+
+                    </div>
                 </div>
 
-                <!-- Sección 3: Resumen y Validación -->
-                <div class="resumen" id="resumen" style="display: none;">
-                    <h3>📊 Resumen de la Compra</h3>
-                    <div id="resumenDetalles"></div>
+                <!-- Sección 3: Resumen y Validación (siempre visible, sin scrollear) -->
+                <div class="resumen" id="resumen-acciones">
                     <div class="resumen-item resumen-total">
                         <span>Total Calculado:</span>
                         <span id="totalCalculado">$0.00</span>
@@ -91,6 +119,9 @@
                         <span>Diferencia:</span>
                         <span id="diferenciaValor">$0.00</span>
                     </div>
+                    <button type="button" class="btn btn-info" id="btnVerResumen" onclick="abrirResumenModal()" disabled>
+                        👁️ Ver resumen completo
+                    </button>
                 </div>
 
                 <!-- Botones de Acción -->
@@ -98,7 +129,7 @@
                     <button type="submit" class="btn btn-primary" id="btnGuardar" disabled>
                         💾 Guardar Compra
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="limpiarFormulario()">
+                    <button type="button" class="btn btn-secondary" id="btnLimpiar">
                         🔄 Limpiar Formulario
                     </button>
                 </div>
@@ -106,253 +137,500 @@
         </div>
     </div>
 
+    <!-- Modal Resumen Completo -->
+    <div id="modal-resumen" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Resumen de la compra</h3>
+                <button type="button" class="btn-cerrar" onclick="cerrarResumenModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modal-resumen-body"></div>
+        </div>
+    </div>
+
     <script>
-        let contadorDetalles = 0;
-        const productos = {{ productos_json|safe }};
+        /* =========================
+           Estado y helpers
+        ========================== */
+        const productos = {{ productos_json|safe }}; // [{id, nombre, marca, precioUnitario}, ...]
+        const prodById = new Map(productos.map(p => [String(p.id), p])); // lookup rápido
 
-        function agregarDetalle() {
-            contadorDetalles++;
-            console.log(`🆕 Agregando detalle #${contadorDetalles}`);
-            const container = document.getElementById('detallesContainer');
-            
-            const detalleHTML = `
-                <div class="detalle-item" id="detalle-${contadorDetalles}">
-                    <select name="producto_${contadorDetalles}" required onchange="actualizarPrecio(${contadorDetalles})">
-                        <option value="">Seleccione producto</option>
-                        ${productos.map(p => `<option value="${p.id}" data-precio="${p.precioUnitario}">${p.nombre} - ${p.marca}</option>`).join('')}
-                    </select>
-                    <input type="number" name="cantidad_${contadorDetalles}" placeholder="Cantidad" min="1" required onchange="calcularSubtotal(${contadorDetalles})">
-                    <div class="precio-container">
-                        <input type="number" name="precio_unitario_${contadorDetalles}" placeholder="Precio unitario" step="0.01" min="0" required onchange="calcularSubtotal(${contadorDetalles})" readonly>
-                        <button type="button" class="btn-editar-precio" onclick="toggleAbrirPopover(${contadorDetalles})">✏️</button>
-    
-                        <div class="precio-popover" id="popover-${contadorDetalles}">
-                            <input type="number" class="input-precio-popover" id="input-precio-${contadorDetalles}" step="0.01" min="0.01">
-                            <button type="button" class="btn-guardar-popover" onclick="guardarPrecioPopover(${contadorDetalles})">✓</button>
-                            <button type="button" class="btn-cancelar-popover" onclick="cerrarPopover(${contadorDetalles})">✕</button>
-                        </div>
-                    </div>
-                    <input type="number" name="subtotal_${contadorDetalles}" placeholder="Subtotal" step="0.01" readonly>
-                    <button type="button" class="btn btn-danger" onclick="eliminarDetalle(${contadorDetalles})">🗑️</button>
-                </div>
-            `;
-            
-            container.insertAdjacentHTML('beforeend', detalleHTML);
-            actualizarResumen();
+        // Array maestro de detalles (Opción 2: estado en memoria)
+        // Cada item: { uid, productoId, nombre, marca, cantidad, precioUnitario, subtotal, overridePrecio }
+        let detalles = [];
+        let nextUid = 1;
+
+        // Control popover del editor
+        let popoverEditorAbierto = false;
+
+        // Referencias a elementos
+        const selProducto = document.getElementById('editor-producto');
+        const inpCantidad = document.getElementById('editor-cantidad');
+        const inpPrecio    = document.getElementById('editor-precio');
+        const btnAgregar   = document.getElementById('btnAgregar');
+        const btnVerResumen = document.getElementById('btnVerResumen');
+        const btnGuardar   = document.getElementById('btnGuardar');
+        const btnLimpiar   = document.getElementById('btnLimpiar');
+
+        const importeTotalInput = document.getElementById('importe_total');
+        const totalCalculadoSpan = document.getElementById('totalCalculado');
+        const importeDeclaradoSpan = document.getElementById('importeDeclarado');
+        const diferenciaValorSpan = document.getElementById('diferenciaValor');
+
+        const popoverEditor = document.getElementById('popover-editor');
+        const inputPrecioEditor = document.getElementById('input-precio-editor');
+        const btnEditarPrecioEditor = document.getElementById('btnEditarPrecioEditor');
+        const btnGuardarPrecioEditor = document.getElementById('btnGuardarPrecioEditor');
+        const btnCancelarPrecioEditor = document.getElementById('btnCancelarPrecioEditor');
+
+        const form = document.getElementById('compraForm');
+
+        /* =========================
+           Inicialización de opciones de producto
+        ========================== */
+        (function initProductoOptions() {
+            // Poblar el select con los productos
+            const opts = ['<option value="">Seleccione producto</option>']
+                .concat(productos.map(p => 
+                    `<option value="${p.id}" data-precio="${p.precioUnitario}">
+                        ${p.nombre} - ${p.marca}
+                    </option>`
+                ));
+            selProducto.innerHTML = opts.join('');
+        })();
+
+        /* =========================
+           Validaciones
+        ========================== */
+        function editorValido() {
+            const prodId = selProducto.value.trim();
+            const cant = parseFloat(inpCantidad.value);
+            const precio = parseFloat(inpPrecio.value);
+            return (
+                prodId !== '' &&
+                Number.isFinite(cant) && cant >= 1 && Number.isInteger(Number(cant)) &&
+                Number.isFinite(precio) && precio > 0
+            );
         }
 
-        function eliminarDetalle(id) {
-            const detalle = document.getElementById(`detalle-${id}`);
-            detalle.remove();
-            actualizarResumen();
+        function setAgregarEnabled() {
+            btnAgregar.disabled = !editorValido();
         }
 
-        function actualizarPrecio(id) {
-            const select = document.querySelector(`#detalle-${id} select`);
-            const precioInput = document.querySelector(`#detalle-${id} input[name="precio_unitario_${id}"]`);
-            const precioPopoverInput = document.getElementById(`input-precio-${id}`);
-            const cantidadInput = document.querySelector(`#detalle-${id} input[name="cantidad_${id}"]`);
-            
-            const option = select.options[select.selectedIndex];
-            if (option.value) {
-                precioInput.value = option.dataset.precio;
-                precioPopoverInput.value = option.dataset.precio; // Sincronizar el popover
-                // Si ya hay cantidad ingresada, recalcular subtotal
-                if (cantidadInput.value) {
-                    calcularSubtotal(id);
-                }
-            }
-        }
-
-//Logica de Popover para cambiar de precios
-
-        // Variable para rastrear qué popover está abierto
-        let popoverAbierto = null;
-
-        function toggleAbrirPopover(productoId) {
-            // Cerrar cualquier popover abierto
-            if (popoverAbierto && popoverAbierto !== productoId) {
-                cerrarPopover(popoverAbierto);
-            }
-            
-            const popover = document.getElementById(`popover-${productoId}`);
-            const input = document.getElementById(`input-precio-${productoId}`);
-            
-            if (popover.style.display === 'none' || !popover.style.display) {
-                // Mostrar popover
-                popover.style.display = 'block';
-                input.focus();
-                input.select(); // Seleccionar todo el texto para edición rápida
-                popoverAbierto = productoId;
-                
-                // Cerrar si se hace clic fuera del popover
-                setTimeout(() => {
-                    document.addEventListener('click', cerrarPopoverGlobal);
-                }, 100);
-            } else {
-                cerrarPopover(productoId);
-            }
-        }
-
-
-
-        
-        function cerrarPopover(productoId) {
-            const popover = document.getElementById(`popover-${productoId}`);
-            popover.style.display = 'none';
-            popoverAbierto = null;
-            document.removeEventListener('click', cerrarPopoverGlobal);
-        }
-
-        function cerrarPopoverGlobal(event) {
-            // Cerrar popover si se hace clic fuera de él
-            if (!event.target.closest('.precio-popover') && !event.target.closest('.btn-editar-precio')) {
-                if (popoverAbierto) {
-                    cerrarPopover(popoverAbierto);
-                }
-            }
-        }
-
-        function guardarPrecioPopover(id) {
-            const nuevoValor = document.getElementById(`input-precio-${id}`).value;
-            
-            if (parseFloat(nuevoValor) <= 0) {
-                alert('El precio debe ser mayor a 0');
+        /* =========================
+           Listeners del Editor
+        ========================== */
+        // Producto → setear precio default
+        selProducto.addEventListener('change', () => {
+            const prodId = selProducto.value;
+            if (!prodId) {
+                inpPrecio.value = '';
                 return;
             }
-            
-            // 1) Actualizar el precio mostrado en el input principal (por detalle)
-            document.querySelector(`#detalle-${id} input[name="precio_unitario_${id}"]`).value = nuevoValor;
-            
-            // 2) Obtener el ID REAL del producto seleccionado en este detalle
-            const select = document.querySelector(`#detalle-${id} select[name="producto_${id}"]`);
-            const productId = select ? select.value : '';
-            if (!productId) {
-                alert('Seleccioná un producto antes de guardar el precio.');
+            const prod = prodById.get(String(prodId));
+            if (prod) {
+                inpPrecio.value = Number(prod.precioUnitario).toFixed(2);
+                inputPrecioEditor.value = Number(prod.precioUnitario).toFixed(2);
+            }
+            setAgregarEnabled();
+        });
+
+        // Cantidad / Precio → validar
+        inpCantidad.addEventListener('input', setAgregarEnabled);
+        inpPrecio.addEventListener('input', setAgregarEnabled);
+
+        // Popover editar precio (override)
+        btnEditarPrecioEditor.addEventListener('click', () => {
+            if (!selProducto.value) {
+                alert('Seleccione un producto antes de editar el precio.');
                 return;
             }
-            
-            // 3) Crear/actualizar inputs ocultos por productId (precio global)
-            const form = document.getElementById('compraForm');
-            
-            // Flag de cambio
-            let hiddenChanged = document.getElementById(`precio-changed-${productId}`);
-            if (!hiddenChanged) {
-                hiddenChanged = document.createElement('input');
-                hiddenChanged.type = 'hidden';
-                hiddenChanged.id = `precio-changed-${productId}`;
-                hiddenChanged.name = `precio_changed_${productId}`; // lo espera el backend
-                form.appendChild(hiddenChanged);
-            }
-            hiddenChanged.value = '1';
-            
-            // Nuevo precio
-            let hiddenNewPrice = document.getElementById(`nuevo-precio-${productId}`);
-            if (!hiddenNewPrice) {
-                hiddenNewPrice = document.createElement('input');
-                hiddenNewPrice.type = 'hidden';
-                hiddenNewPrice.id = `nuevo-precio-${productId}`;
-                hiddenNewPrice.name = `nuevo_precio_${productId}`; // lo espera el backend
-                form.appendChild(hiddenNewPrice);
-            }
-            hiddenNewPrice.value = nuevoValor;
-            
-            // 4) Recalcular subtotal y cerrar popover
-            calcularSubtotal(id);
-            cerrarPopover(id);
-        }
-
-            document.addEventListener('click', function(event) {
-                if (event.target.classList.contains('btn-guardar-popover')) {
-                    console.log('Botón clickeado:', event.target);
-                    console.log('Popover padre:', event.target.closest('.precio-popover'));
-                    console.log('ID del popover:', event.target.closest('.precio-popover').id);
-                }
-            });
-
-//Fin logica de popover
-
-        function calcularSubtotal(id) {
-            const cantidad = parseFloat(document.querySelector(`#detalle-${id} input[name="cantidad_${id}"]`).value) || 0;
-            const precio = parseFloat(document.querySelector(`#detalle-${id} input[name="precio_unitario_${id}"]`).value) || 0;
-            const subtotal = cantidad * precio;
-            
-            document.querySelector(`#detalle-${id} input[name="subtotal_${id}"]`).value = subtotal.toFixed(2);
-            actualizarResumen();
-        }
-
-        function actualizarResumen() {
-            const detalles = document.querySelectorAll('.detalle-item');
-            let totalCalculado = 0;
-            let resumenHTML = '';
-
-            detalles.forEach((detalle, index) => {
-                const producto = detalle.querySelector('select').options[detalle.querySelector('select').selectedIndex].text;
-                const cantidad = detalle.querySelector('input[placeholder="Cantidad"]').value;
-                const precio = detalle.querySelector('input[placeholder="Precio unitario"]').value;
-                const subtotal = detalle.querySelector('input[placeholder="Subtotal"]').value;
-
-                if (producto && cantidad && precio && subtotal) {
-                    totalCalculado += parseFloat(subtotal);
-                    resumenHTML += `
-                        <div class="resumen-item">
-                            <span>${producto} (${cantidad} x $${precio})</span>
-                            <span>$${subtotal}</span>
-                        </div>
-                    `;
-                }
-            });
-
-            const importeDeclarado = parseFloat(document.getElementById('importe_total').value) || 0;
-            const diferencia = importeDeclarado - totalCalculado;
-
-            document.getElementById('resumenDetalles').innerHTML = resumenHTML;
-            document.getElementById('totalCalculado').textContent = `$${totalCalculado.toFixed(2)}`;
-            document.getElementById('importeDeclarado').textContent = `$${importeDeclarado.toFixed(2)}`;
-            document.getElementById('diferenciaValor').textContent = `$${diferencia.toFixed(2)}`;
-
-            // Mostrar/ocultar resumen
-            const resumen = document.getElementById('resumen');
-            if (totalCalculado > 0) {
-                resumen.style.display = 'block';
+            if (popoverEditor.style.display === 'none' || !popoverEditor.style.display) {
+                popoverEditor.style.display = 'block';
+                inputPrecioEditor.value = inpPrecio.value || '';
+                inputPrecioEditor.focus();
+                inputPrecioEditor.select();
+                popoverEditorAbierto = true;
+                setTimeout(() => document.addEventListener('click', cerrarPopoverGlobalEditor), 0);
             } else {
-                resumen.style.display = 'none';
-            }
-
-            // Validar diferencia
-            const diferenciaElement = document.getElementById('diferencia');
-            if (Math.abs(diferencia) > 0.01) {
-                diferenciaElement.style.color = '#dc3545';
-                document.getElementById('btnGuardar').disabled = true;
-            } else {
-                diferenciaElement.style.color = '#28a745';
-                document.getElementById('btnGuardar').disabled = false;
-            }
-        }
-
-        function limpiarFormulario() {
-            document.getElementById('compraForm').reset();
-            document.getElementById('detallesContainer').innerHTML = '';
-            document.getElementById('resumen').style.display = 'none';
-            document.getElementById('btnGuardar').disabled = true;
-            contadorDetalles = 0;
-        }
-
-        // Event listeners
-        document.getElementById('importe_total').addEventListener('input', actualizarResumen);
-        
-        // Agregar primer detalle al cargar la página
-        window.onload = function() {
-            agregarDetalle();
-        };
-
-        // Prevenir envío del formulario con Enter
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                return false;
+                cerrarPopoverEditor();
             }
         });
+
+        btnGuardarPrecioEditor.addEventListener('click', () => {
+            const nuevo = parseFloat(inputPrecioEditor.value);
+            if (!Number.isFinite(nuevo) || nuevo <= 0) {
+                alert('El precio debe ser mayor a 0.');
+                return;
+            }
+            inpPrecio.value = nuevo.toFixed(2);
+            cerrarPopoverEditor();
+            setAgregarEnabled();
+        });
+
+        btnCancelarPrecioEditor.addEventListener('click', cerrarPopoverEditor);
+
+        function cerrarPopoverEditor() {
+            popoverEditor.style.display = 'none';
+            popoverEditorAbierto = false;
+            document.removeEventListener('click', cerrarPopoverGlobalEditor);
+        }
+
+        function cerrarPopoverGlobalEditor(e) {
+            if (!e.target.closest('.precio-popover') && !e.target.closest('.btn-editar-precio')) {
+                cerrarPopoverEditor();
+            }
+        }
+
+        // Enter para agregar, Esc para cerrar popover
+        document.addEventListener('keydown', (e) => {
+            if (popoverEditorAbierto && e.key === 'Escape') {
+                cerrarPopoverEditor();
+            } else if (!popoverEditorAbierto && e.key === 'Enter') {
+                // Si el foco está dentro del editor, agregamos
+                const dentroEditor = e.target.closest('#detalleEditor');
+                if (dentroEditor) {
+                    e.preventDefault();
+                    if (editorValido()) agregarDesdeEditor();
+                }
+            }
+        });
+
+        btnAgregar.addEventListener('click', agregarDesdeEditor);
+
+        /* =========================
+           Lógica de agregar (Ideas 2 y 4)
+        ========================== */
+        function agregarDesdeEditor() {
+            if (!editorValido()) {
+                alert('Complete producto, cantidad (entera ≥1) y precio (>0).');
+                return;
+            }
+            const prodId = selProducto.value.trim();
+            const prod = prodById.get(String(prodId));
+            const cantidad = parseInt(inpCantidad.value, 10);
+            const precio = parseFloat(inpPrecio.value);
+
+            // override si difiere del precio default del producto
+            const overridePrecio = Math.abs(precio - Number(prod.precioUnitario)) > 1e-9;
+
+            // Opción A: Merge por (productoId, precioUnitario)
+            const existed = detalles.find(it => it.productoId === prodId && Math.abs(it.precioUnitario - precio) < 1e-9);
+            if (existed) {
+                existed.cantidad += cantidad;
+                existed.subtotal = existed.cantidad * existed.precioUnitario;
+                // si hubo override en esta carga, marcarlo
+                existed.overridePrecio = existed.overridePrecio || overridePrecio;
+            } else {
+                detalles.push({
+                    uid: nextUid++,
+                    productoId: prodId,
+                    nombre: prod.nombre,
+                    marca: prod.marca,
+                    cantidad: cantidad,
+                    precioUnitario: precio,
+                    subtotal: cantidad * precio,
+                    overridePrecio: overridePrecio
+                });
+            }
+
+            // Limpiar editor (Idea 2)
+            limpiarEditor();
+
+            // Actualizar resumen
+            actualizarResumenUI();
+        }
+
+        function limpiarEditor() {
+            selProducto.value = '';
+            inpCantidad.value = '';
+            inpPrecio.value = '';
+            inputPrecioEditor.value = '';
+            setAgregarEnabled();
+            selProducto.focus();
+        }
+
+        /* =========================
+           Resumen siempre visible + habilitar botones
+        ========================== */
+        function formatoMoneda(n) {
+            const val = Number(n || 0);
+            return '$' + val.toFixed(2);
+        }
+
+        function totalCalculado() {
+            return detalles.reduce((acc, it) => acc + it.subtotal, 0);
+        }
+
+        function actualizarResumenUI() {
+            const total = totalCalculado();
+            const declarado = parseFloat(importeTotalInput.value) || 0;
+            const dif = declarado - total;
+
+            totalCalculadoSpan.textContent = formatoMoneda(total);
+            importeDeclaradoSpan.textContent = formatoMoneda(declarado);
+            diferenciaValorSpan.textContent = formatoMoneda(dif);
+        }
+
+        importeTotalInput.addEventListener('input', actualizarResumenUI);
+
+        /* =========================
+           Modal de Resumen (Idea 3 y 8)
+        ========================== */
+        function abrirResumenModal() {
+            const overlay = document.getElementById('modal-resumen');
+            const body = document.getElementById('modal-resumen-body');
+
+            body.innerHTML = construirTablaResumenHTML();
+            overlay.style.display = 'flex';
+
+            // Delegación de eventos para Editar/Eliminar/Guardar/Cancelar dentro del modal
+            body.addEventListener('click', onClickTablaResumen);
+            body._delegated = true;
+
+            // Esc para cerrar
+            function onEsc(e) { if (e.key === 'Escape') cerrarResumenModal(); }
+            document.addEventListener('keydown', onEsc);
+            overlay._onEsc = onEsc;
+
+            // Click fuera cierra
+            function onOverlayClick(e) { if (e.target === overlay) cerrarResumenModal(); }
+            overlay.addEventListener('click', onOverlayClick);
+            overlay._onOverlayClick = onOverlayClick;
+        }
+
+        function cerrarResumenModal() {
+            const overlay = document.getElementById('modal-resumen');
+            const body = document.getElementById('modal-resumen-body');
+
+            if (body._delegated) {
+                body.removeEventListener('click', onClickTablaResumen);
+                body._delegated = false;
+            }
+
+            overlay.style.display = 'none';
+
+            if (overlay._onEsc) {
+                document.removeEventListener('keydown', overlay._onEsc);
+                overlay._onEsc = null;
+            }
+            if (overlay._onOverlayClick) {
+                overlay.removeEventListener('click', overlay._onOverlayClick);
+                overlay._onOverlayClick = null;
+            }
+        }
+
+        function construirTablaResumenHTML() {
+            let filas = detalles.map(it => `
+                <tr data-uid="${it.uid}">
+                    <td>${it.nombre} - ${it.marca}</td>
+                    <td class="td-cantidad">${it.cantidad}</td>
+                    <td class="td-precio">${formatoMoneda(it.precioUnitario)}</td>
+                    <td class="td-subtotal">${formatoMoneda(it.subtotal)}</td>
+                    <td class="td-acciones">
+                        <button type="button" class="btn btn-sm btn-outline" data-action="editar" aria-label="Editar">✏️</button>
+                        <button type="button" class="btn btn-sm btn-danger" data-action="eliminar">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            if (filas.trim() === '') {
+                filas = `<tr><td colspan="5" style="text-align:center;">Sin productos cargados</td></tr>`;
+            }
+
+            const total = totalCalculado();
+
+            return `
+                <table class="tabla-resumen">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Precio Unitario</th>
+                            <th>Subtotal</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-resumen">
+                        ${filas}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">Total</td>
+                            <td>${formatoMoneda(total)}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+        }
+
+        function onClickTablaResumen(e) {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const action = btn.getAttribute('data-action');
+            const tr = e.target.closest('tr[data-uid]');
+            if (!tr) return;
+            const uid = parseInt(tr.getAttribute('data-uid'), 10);
+            const item = detalles.find(it => it.uid === uid);
+            if (!item) return;
+
+            if (action === 'eliminar') {
+                // Eliminar del array
+                detalles = detalles.filter(it => it.uid !== uid);
+                // Re-render modal body y resumen UI
+                document.getElementById('modal-resumen-body').innerHTML = construirTablaResumenHTML();
+                actualizarResumenUI();
+                return;
+            }
+
+            if (action === 'editar') {
+                // Cambiar fila a modo edición (cantidad y precio)
+                toRowEditMode(tr, item);
+                return;
+            }
+
+            if (action === 'guardar-edicion') {
+                const inpCant = tr.querySelector('input[name="edit-cantidad"]');
+                const inpPrec = tr.querySelector('input[name="edit-precio"]');
+                const nuevaCant = parseInt(inpCant.value, 10);
+                const nuevoPrec = parseFloat(inpPrec.value);
+
+                if (!Number.isInteger(nuevaCant) || nuevaCant < 1) {
+                    alert('Cantidad debe ser un entero ≥ 1.');
+                    return;
+                }
+                if (!Number.isFinite(nuevoPrec) || nuevoPrec <= 0) {
+                    alert('Precio debe ser mayor a 0.');
+                    return;
+                }
+
+                // Si cambió el precio, ver si existe otra línea con (mismo productoId, nuevoPrec) para merge
+                const sameLine = detalles.find(it => it.uid === uid);
+                const other = detalles.find(it => it.uid !== uid && it.productoId === sameLine.productoId && Math.abs(it.precioUnitario - nuevoPrec) < 1e-9);
+
+                // Actualizar/merge
+                if (other) {
+                    other.cantidad += nuevaCant;
+                    other.subtotal = other.cantidad * other.precioUnitario;
+                    // override si difiere del default
+                    const defaultP = Number(prodById.get(String(other.productoId)).precioUnitario);
+                    other.overridePrecio = other.overridePrecio || Math.abs(nuevoPrec - defaultP) > 1e-9;
+                    // eliminar la línea actual
+                    detalles = detalles.filter(it => it.uid !== uid);
+                } else {
+                    sameLine.cantidad = nuevaCant;
+                    sameLine.precioUnitario = nuevoPrec;
+                    sameLine.subtotal = nuevaCant * nuevoPrec;
+                    const defaultP = Number(prodById.get(String(sameLine.productoId)).precioUnitario);
+                    sameLine.overridePrecio = Math.abs(nuevoPrec - defaultP) > 1e-9;
+                }
+
+                // Re-render
+                document.getElementById('modal-resumen-body').innerHTML = construirTablaResumenHTML();
+                actualizarResumenUI();
+                return;
+            }
+
+            if (action === 'cancelar-edicion') {
+                // Re-render sin cambios
+                document.getElementById('modal-resumen-body').innerHTML = construirTablaResumenHTML();
+                return;
+            }
+        }
+
+        function toRowEditMode(tr, item) {
+            const tdCantidad = tr.querySelector('.td-cantidad');
+            const tdPrecio = tr.querySelector('.td-precio');
+            const tdSubtotal = tr.querySelector('.td-subtotal');
+            const tdAcciones = tr.querySelector('.td-acciones');
+
+            tdCantidad.innerHTML = `<input type="number" name="edit-cantidad" min="1" step="1" value="${item.cantidad}">`;
+            tdPrecio.innerHTML = `<input type="number" name="edit-precio" min="0.01" step="0.01" value="${item.precioUnitario.toFixed(2)}">`;
+            tdSubtotal.textContent = '—';
+            tdAcciones.innerHTML = `
+                <button type="button" class="btn btn-sm btn-primary" data-action="guardar-edicion">Guardar</button>
+                <button type="button" class="btn btn-sm btn-outline" data-action="cancelar-edicion">Cancelar</button>
+            `;
+        }
+
+        /* =========================
+           Submit (Idea 5 - Opción 1)
+        ========================== */
+        form.addEventListener('submit', (e) => {
+            // Validación básica antes de serializar
+            if (detalles.length === 0) {
+                e.preventDefault();
+                alert('No hay productos cargados.');
+                return;
+            }
+            const declarado = parseFloat(importeTotalInput.value) || 0;
+            const dif = declarado - totalCalculado();
+            if (Math.abs(dif) > 0.01) {
+                e.preventDefault();
+                alert('La diferencia debe ser 0 (±0,01). Revise los montos.');
+                return;
+            }
+
+            // Limpiar inputs ocultos anteriores (por si hubo submit previo cancelado)
+            Array.from(form.querySelectorAll('input[type="hidden"].hidden-detalle, input[type="hidden"].hidden-override'))
+                 .forEach(el => el.remove());
+
+            // Serializar detalles: producto_i, cantidad_i, precio_unitario_i, subtotal_i
+            detalles.forEach((it, idx) => {
+                const i = idx + 1;
+                crearHidden(`producto_${i}`, it.productoId, 'hidden-detalle');
+                crearHidden(`cantidad_${i}`, String(it.cantidad), 'hidden-detalle');
+                crearHidden(`precio_unitario_${i}`, Number(it.precioUnitario).toFixed(2), 'hidden-detalle');
+                crearHidden(`subtotal_${i}`, Number(it.subtotal).toFixed(2), 'hidden-detalle');
+            });
+            crearHidden('detalles_count', String(detalles.length), 'hidden-detalle');
+
+            // Flags de override de precio por productId
+            // Si hay múltiples overrides para el mismo producto con distintos precios,
+            // priorizamos la última línea encontrada.
+            const overrides = new Map(); // productId -> nuevoPrecio
+            for (const it of detalles) {
+                if (it.overridePrecio) {
+                    overrides.set(it.productoId, Number(it.precioUnitario).toFixed(2));
+                }
+            }
+            overrides.forEach((nuevoPrecio, productId) => {
+                crearHidden(`precio_changed_${productId}`, '1', 'hidden-override');
+                crearHidden(`nuevo_precio_${productId}`, nuevoPrecio, 'hidden-override');
+            });
+
+            // Deshabilitar el botón para evitar doble submit
+            btnGuardar.disabled = true;
+        });
+
+        function crearHidden(name, value, cls) {
+            const h = document.createElement('input');
+            h.type = 'hidden';
+            h.name = name;
+            h.value = value;
+            h.className = cls;
+            form.appendChild(h);
+        }
+
+        /* =========================
+           Limpiar formulario (estado + UI)
+        ========================== */
+        btnLimpiar.addEventListener('click', limpiarFormulario);
+        function limpiarFormulario() {
+            form.reset();
+            detalles = [];
+            nextUid = 1;
+            limpiarEditor();
+            actualizarResumenUI();
+        }
+
+        /* =========================
+           Arranque
+        ========================== */
+        // Estado inicial
+        setAgregarEnabled();
+        actualizarResumenUI();
     </script>
 </body>
 </html>
