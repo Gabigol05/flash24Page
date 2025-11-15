@@ -3,13 +3,14 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Stock Disponible</title>
-    <link rel="stylesheet" href="{% static 'consultarStock.css' %}?v=3">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Gestión de inventario - Flash24AdminApp">
+    <title>Consultar Stock - Flash24AdminApp</title>
+    <link rel="stylesheet" href="{% static 'consultarStock.css' %}?v=4">
 </head>
 <body>
-    {% if alertas_stock %}
     <!-- Modal de Alerta de Stock Bajo -->
+    {% if alertas_stock %}
     <div id="alertModal" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
@@ -21,13 +22,13 @@
                 <ul class="alert-list">
                     {% for stock in alertas_stock|slice:":5" %}
                     <li class="alert-item {% if stock.cantidadDisponible <= 5 %}alert-critical{% else %}alert-warning{% endif %}">
-                        <span>{{ stock.producto.nombre }} - {{ stock.ciudad.nombre }}</span>
-                        <span><strong>{{ stock.cantidadDisponible }} unidades</strong></span>
+                        <span class="alert-product">{{ stock.producto.nombre }} - {{ stock.ciudad.nombre }}</span>
+                        <span class="alert-quantity"><strong>{{ stock.cantidadDisponible }} unidades</strong></span>
                     </li>
                     {% endfor %}
                     {% if alertas_stock|length > 5 %}
                     <li class="alert-item alert-warning">
-                        <span>Y {{ alertas_stock|length|add:"-5" }} productos más con stock bajo</span>
+                        <span class="alert-product">Y {{ alertas_stock|length|add:"-5" }} productos más con stock bajo</span>
                         <span class="alert-count">{{ alertas_stock|length|add:"-5" }}</span>
                     </li>
                     {% endif %}
@@ -41,17 +42,15 @@
     </div>
 
     <script>
-        // Mostrar el modal automáticamente cuando se carga la página
         document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('alertModal');
-            if (!modal) return; // no hay alertas
+            if (!modal) return;
 
             const params = new URLSearchParams(window.location.search);
             const ciudadParam = params.get('ciudad');
             const ONE_MINUTE = 60 * 1000;
+            const FOUR_HOURS = 4 * 60 * 60 * 1000;
 
-            // Si la carga viene con ?ciudad=..., queremos mostrar la alerta para esa ciudad
-            // salvo que el usuario la haya cerrado en las últimas 4 horas para la misma ciudad.
             function shouldShowForCity(ciudad) {
                 const key = 'alertModalClosed_city_' + ciudad;
                 const last = localStorage.getItem(key);
@@ -71,13 +70,11 @@
                 setTimeout(function() { modal.classList.add('show'); }, 500);
             }
 
-            // Cerrar al hacer click fuera
             modal.addEventListener('click', function(e) {
                 if (e.target === modal) closeModal();
             });
         });
 
-        // Función para cerrar el modal
         function closeModal() {
             const modal = document.getElementById('alertModal');
             if (!modal) return;
@@ -89,155 +86,184 @@
             if (ciudadParam) {
                 localStorage.setItem('alertModalClosed_city_' + ciudadParam, now);
             }
-            // También guardamos la marca general
             localStorage.setItem('alertModalClosed', now);
         }
     </script>
     {% endif %}
-    <div class="container-stock">
-        <div class="header">
-            <h1 class="">📦 Inventario de Productos</h1>
-            <div class="header-controls">
-                <button class="btn btn-secondary">
-                    <a href="{% url 'index' %}" class="btn btn-secondary">
-                        <span>🏠</span>
-                        <span>Volver al Inicio</span>
-                    </a>
-                </button>
-                <div class="filtroCiudad">
-                    <form method="GET">
-                        <div>
-                            <label for="ciudad" class="ciudadCss">
-                                <span class="ciudad-icon">📍</span> <span class="span-classes">Ciudad:</span>
-                            </label>
-                            <select class="ciudadCss custom-select" name="ciudad" id="ciudad" onchange="this.form.submit()">
-                                <option value="1">Selecciona una ciudad</option>
-                                {% for ciudad in ciudades %}
-                                    <option value="{{ ciudad.id }}" {% if ciudad.id == ciudad_seleccionada %}selected{% endif %}>{{ ciudad.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                </form>
-            </div>
-        </div>
-        
 
-        {% if productos %}
-            <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Marca</th>
-                        <th>Stock Disponible</th>
-                        <th>Estado</th>
-                        <th>Precio Unitario</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for producto in productos %}
-                        <tr>
-                            <td data-label="Producto">{{ producto.nombre }}</td>
-                            <td data-label="Marca">{{ producto.marca }}</td>
-                            <td data-label="Stock Disponible" class="
-                                {% if producto.stock and producto.stock.cantidadDisponible > 50 %}stock-high
-                                {% elif producto.stock and producto.stock.cantidadDisponible > 20 %}stock-medium
-                                {% else %}stock-low{% endif %}
-                            ">
-                                {{ producto.stock.cantidadDisponible|default:0 }} unidades
-                            </td>
-                            <td data-label="Estado" class="
-                                {% if producto.stock and producto.stock.cantidadDisponible > 50 %}stock-high
-                                {% elif producto.stock and producto.stock.cantidadDisponible > 20 %}stock-medium
-                                {% else %}stock-low{% endif %}
-                            ">
-                                {% if producto.stock and producto.stock.cantidadDisponible > 50 %}
-                                    Alto
-                                {% elif producto.stock and producto.stock.cantidadDisponible > 20 %}
-                                    Medio
-                                {% else %}
-                                    Bajo
-                                {% endif %}
-                            </td>
-                            <td data-label="Precio">${{ producto.precioUnitario }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="5"><strong>Total productos:</strong> {{ productos|length }}</td>
-                    </tr>
-                </tfoot>
-            </table>
-            </div>
-        {% else %}
-            <div>
-                <div>📦</div>
-                <h3>No hay productos disponibles</h3>
-                <p>Agrega productos al sistema para comenzar a gestionar el inventario.</p>
-            </div>
-        {% endif %}
-    </div>
+    <!-- Main Content -->
+    <main class="main-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="header-title">📦 Inventario de Productos</h1>
+                
+                <!-- Improved header controls layout for better responsiveness -->
+                <div class="header-controls">
+                    <div class="control-group">
+                        <form method="GET" class="ciudad-form">
+                            <div class="form-field">
+                                <label for="ciudad" class="form-label">
+                                    <span class="location-icon">📍</span>
+                                    <span class="label-text">Ciudad:</span>
+                                </label>
+                                <select 
+                                    class="ciudad-select" 
+                                    name="ciudad" 
+                                    id="ciudad" 
+                                    onchange="this.form.submit()"
+                                    aria-label="Seleccionar ciudad para filtrar productos"
+                                >
+                                    <option value="">Selecciona una ciudad</option>
+                                    {% for ciudad in ciudades %}
+                                        <option value="{{ ciudad.id }}" {% if ciudad.id == ciudad_seleccionada %}selected{% endif %}>
+                                            {{ ciudad.nombre }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </form>
+                    </div>
 
-    <!-- Sección de alertas -->
-    <div id="seccion-alertas" class="alertas-container">
-        <h3>Alertas de Stock Bajo ({{ total_alertas }})</h3>
-        
-        {% if alertas_stock %}
-            <div class="tabla-alertas">
-                <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Producto</th>
-                            <th>Ciudad</th>
-                            <th>Stock</th>
-                            <th>Fecha de Alerta</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for stock in alertas_stock %}
-                        <tr class="{% if stock.cantidadDisponible <= 5 %}alerta-critica{% else %}alerta-media{% endif %}">
-                            <td data-label="Producto">{{ stock.producto.nombre }}</td>
-                            <td data-label="Ciudad">{{ stock.ciudad.nombre }}</td>
-                            <td data-label="Stock">{{ stock.cantidadDisponible }}</td>
-                            <td data-label="Fecha">{{ stock.fecha_ultima_alerta|date:"d/m/Y H:i" }}</td>
-                            <td data-label="Acciones">
-                                <button class="btn btn-sm btn-secondary">
-                                <a href="{% url 'registrarCompra' %}?producto={{ stock.producto.id }}" class="btn btn-sm btn-primary">
-                                    Registrar Compra
-                                </a>
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                    <div class="control-group">
+                        <a href="{% url 'index' %}" class="btn btn-secondary" aria-label="Volver a la página de inicio">
+                            <span class="btn-icon">🏠</span>
+                            <span class="btn-text">Volver</span>
+                        </a>
+                    </div>
                 </div>
             </div>
-        {% else %}
-            <p class="sin-alertas">No hay alertas de stock bajo actualmente.</p>
-        
+        </header>
+
+        <!-- Productos Section -->
+        <section class="section-productos">
+            {% if productos %}
+                <!-- Improved table structure with better responsive wrapper -->
+                <div class="table-wrapper">
+                    <table class="table-productos" role="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Producto</th>
+                                <th scope="col">Marca</th>
+                                <th scope="col">Stock Disponible</th>
+                                <th scope="col">Estado</th>
+                                <th scope="col">Precio Unitario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for producto in productos %}
+                            <tr>
+                                <td data-label="Producto" class="cell-producto">{{ producto.nombre }}</td>
+                                <td data-label="Marca" class="cell-marca">{{ producto.marca }}</td>
+                                <td data-label="Stock Disponible" class="cell-stock 
+                                    {% if producto.stock and producto.stock.cantidadDisponible > 50 %}stock-high
+                                    {% elif producto.stock and producto.stock.cantidadDisponible > 20 %}stock-medium
+                                    {% else %}stock-low{% endif %}
+                                ">
+                                    {{ producto.stock.cantidadDisponible|default:0 }}
+                                </td>
+                                <td data-label="Estado" class="cell-estado 
+                                    {% if producto.stock and producto.stock.cantidadDisponible > 50 %}stock-high
+                                    {% elif producto.stock and producto.stock.cantidadDisponible > 20 %}stock-medium
+                                    {% else %}stock-low{% endif %}
+                                ">
+                                    {% if producto.stock and producto.stock.cantidadDisponible > 50 %}
+                                        <span class="status-badge status-high">Alto</span>
+                                    {% elif producto.stock and producto.stock.cantidadDisponible > 20 %}
+                                        <span class="status-badge status-medium">Medio</span>
+                                    {% else %}
+                                        <span class="status-badge status-low">Bajo</span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Precio" class="cell-precio">${{ producto.precioUnitario }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="5" class="footer-cell">
+                                    <strong>Total de productos:</strong> {{ productos|length }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            {% else %}
+                <!-- Improved empty state styling -->
+                <div class="empty-state">
+                    <div class="empty-icon">📦</div>
+                    <h3 class="empty-title">No hay productos disponibles</h3>
+                    <p class="empty-message">Agrega productos al sistema para comenzar a gestionar el inventario.</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Alertas Section -->
+        <section id="seccion-alertas" class="section-alertas">
+            <div class="alertas-header">
+                <h2 class="alertas-title">Alertas de Stock Bajo</h2>
+                <span class="alertas-count">{{ total_alertas }}</span>
+            </div>
+
+            {% if alertas_stock %}
+                <!-- Improved alerts table with better styling -->
+                <div class="table-wrapper table-alertas-wrapper">
+                    <table class="table-alertas" role="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Producto</th>
+                                <th scope="col">Ciudad</th>
+                                <th scope="col">Stock</th>
+                                <th scope="col">Fecha de Alerta</th>
+                                <th scope="col">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stock in alertas_stock %}
+                            <tr class="alert-row {% if stock.cantidadDisponible <= 5 %}alerta-critica{% else %}alerta-media{% endif %}">
+                                <td data-label="Producto" class="cell-producto-alerta">{{ stock.producto.nombre }}</td>
+                                <td data-label="Ciudad" class="cell-ciudad">{{ stock.ciudad.nombre }}</td>
+                                <td data-label="Stock" class="cell-stock-alerta {% if stock.cantidadDisponible <= 5 %}stock-critical{% else %}stock-warning{% endif %}">
+                                    <span class="stock-number">{{ stock.cantidadDisponible }}</span>
+                                </td>
+                                <td data-label="Fecha" class="cell-fecha">{{ stock.fecha_ultima_alerta|date:"d/m/Y H:i" }}</td>
+                                <td data-label="Acciones" class="cell-acciones">
+                                    <a href="{% url 'registrarCompra' %}?producto={{ stock.producto.id }}" class="btn btn-sm btn-primary" aria-label="Registrar compra para {{ stock.producto.nombre }}">
+                                        <span class="btn-icon">➕</span>
+                                        <span class="btn-text-sm">Compra</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <!-- Improved no alerts state -->
+                <div class="no-alerts">
+                    <p class="no-alerts-message">✓ No hay alertas de stock bajo actualmente</p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
 
     <script>
-        // Mostrar el toast automáticamente al cargar la página
         window.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('alertaToast').classList.add('mostrar');
-            
-            // Ocultar después de 8 segundos
-            setTimeout(function() {
-                document.getElementById('alertaToast').classList.remove('mostrar');
-            }, 8000);
+            const toast = document.getElementById('alertaToast');
+            if (toast) {
+                toast.classList.add('mostrar');
+                setTimeout(function() {
+                    toast.classList.remove('mostrar');
+                }, 8000);
+            }
         });
         
         function cerrarToast() {
-            document.getElementById('alertaToast').classList.remove('mostrar');
+            const toast = document.getElementById('alertaToast');
+            if (toast) {
+                toast.classList.remove('mostrar');
+            }
         }
     </script>
-    {% endif %}
 </body>
 </html>
-
-
-

@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Recarga de máquinas expendedoras - Flash24AdminApp">
     <title>Recarga de Máquinas Expendedoras</title>
     <link rel="stylesheet" href="{% static 'actualizarStock.css' %}">
 </head>
@@ -12,9 +13,9 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <a href="{% url 'index' %}" class="btn btn-secondary back-home-btn">
+                <a href="{% url 'index' %}" class="btn btn-secondary back-home-btn" title="Volver al inicio">
                     <span>🏠</span>
-                    <span>Volver al Inicio</span>
+                    <span>Inicio</span>
                 </a>
             </div>
         </div>
@@ -22,17 +23,15 @@
         <!-- Contenido principal -->
         <div class="main-content">
             <!-- Header -->
-            
             <div class="content-header">
                 <h1>🔄 Recarga de Máquinas Expendedoras</h1>
                 <p>Registra las recargas y gestiona el inventario de productos</p>
             </div>
-            
 
             <!-- Alertas -->
             {% if messages %}
                 {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">
+                    <div class="alert alert-{{ message.tags }}" role="alert">
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -41,44 +40,54 @@
             <!-- Formulario de recarga -->
             <div class="form-container">
                 <div class="form-title">Formulario de Recarga</div>
-                
-                <form method="POST">
+
+                <form method="POST" novalidate>
                     {% csrf_token %}
-                    
+
                     <div class="form-grid">
+                        <!-- Campo: Ciudad -->
                         <div class="form-group">
                             <label for="ciudad">Ciudad:</label>
-                            <select name="ciudad" id="ciudad" onchange="location.href='?ciudad='+this.value" required>
+                            <select name="ciudad" id="ciudad" onchange="location.href='?ciudad='+this.value" required aria-label="Selecciona una ciudad">
                                 <option value="">Selecciona una ciudad</option>
                                 {% for ciudad in ciudades %}
-                                    <option value="{{ ciudad.id }}" {% if ciudad.id == ciudad_seleccionada %}selected{% endif %}>{{ ciudad.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="maquina">Máquina a recargar:</label>
-                            <select name="maquina" id="maquina" required>
-                                <option value="">Selecciona una máquina</option>
-                                {% for maquina in maquinas %}
-                                    <option value="{{ maquina.idMaquina }}">{{ maquina.nombre }} - {{ maquina.ubicacion }}</option>
+                                    <option value="{{ ciudad.id }}" {% if ciudad.id == ciudad_seleccionada %}selected{% endif %}>
+                                        {{ ciudad.nombre }}
+                                    </option>
                                 {% endfor %}
                             </select>
                         </div>
 
+                        <!-- Campo: Máquina -->
                         <div class="form-group">
-                            <label for="producto">Producto a cargar:</label>
+                            <label for="maquina">Máquina a recargar:</label>
+                            <select name="maquina" id="maquina" required aria-label="Selecciona una máquina">
+                                <option value="">Selecciona una máquina</option>
+                                {% for maquina in maquinas %}
+                                    <option value="{{ maquina.idMaquina }}">
+                                        {{ maquina.nombre }} - {{ maquina.ubicacion }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Campo: Búsqueda de Producto -->
+                        <div class="form-group">
+                            <label for="producto-search">Producto a cargar:</label>
                             <div class="search-container">
-                                <input type="text" id="producto-search" placeholder="Escribe para buscar productos..." autocomplete="off">
+                                <input type="text" id="producto-search" placeholder="Escribe para buscar..." autocomplete="off" aria-label="Buscar productos" aria-describedby="search-help">
                                 <input type="hidden" name="producto" id="producto" required>
-                                <div class="search-results" id="search-results"></div>
+                                <div class="search-results" id="search-results" role="listbox"></div>
                             </div>
                         </div>
 
+                        <!-- Campo: Cantidad -->
                         <div class="form-group">
                             <label for="cantidad">Cantidad a cargar:</label>
-                            <input type="number" name="cantidad" id="cantidad" min="1" required>
+                            <input type="number" name="cantidad" id="cantidad" min="1" required aria-label="Cantidad a cargar" placeholder="Ingresa la cantidad">
                         </div>
 
+                        <!-- Campo: Usuario (oculto) -->
                         <div class="form-group" style="display: none;">
                             <label for="usuario">Usuario responsable:</label>
                             <select name="usuario" id="usuario" required>
@@ -88,7 +97,7 @@
                     </div>
 
                     <div class="button-group">
-                        <button type="submit" class="btn">
+                        <button type="submit" class="btn" aria-label="Registrar recarga de producto">
                             <span>✅</span>
                             <span>Registrar Recarga</span>
                         </button>
@@ -99,56 +108,60 @@
             <!-- Lista de productos -->
             <div class="products-section">
                 <div class="products-header">
-                    <div class="products-title"  >🌆 Stock Disponible en: {{ ciudad.nombre }}</div>
+                    <div>
+                        <div class="products-title">🌆 Stock en: {{ ciudad.nombre }}</div>
+                    </div>
                     <div>
                         <div class="products-title">📦 Inventario de Productos</div>
                     </div>
                 </div>
 
                 {% if productos %}
-                    <table class="products-table">
-                        <thead>
-                            <tr>
-                                <th>Producto</th>
-                                <th>Marca</th>
-                                <th>Stock Disponible</th>
-                                <th>Estado</th>
-                                <th>Precio Unitario</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for producto in productos %}
+                    <div class="table-responsive">
+                        <table class="products-table" role="table">
+                            <thead>
                                 <tr>
-                                    <td>
-                                        <div class="product-name">{{ producto.nombre }}</div>
-                                    </td>
-                                    <td>
-                                        <div class="product-brand">{{ producto.marca }}</div>
-                                    </td>
-                                    <td>
-                                        <div class="stock-amount 
-                                            {% if producto.stock.cantidadDisponible > 50 %}stock-high
-                                            {% elif producto.stock.cantidadDisponible > 20 %}stock-medium
-                                            {% else %}stock-low{% endif %}">
-                                            {{ producto.stock.cantidadDisponible|default:0 }} unidades
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {% if producto.stock.cantidadDisponible > 50 %}
-                                            <span class="stock-status status-high">Alto</span>
-                                        {% elif producto.stock.cantidadDisponible > 20 %}
-                                            <span class="stock-status status-medium">Medio</span>
-                                        {% else %}
-                                            <span class="stock-status status-low">Bajo</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="price">${{ producto.precioUnitario }}</div>
-                                    </td>
+                                    <th scope="col">Producto</th>
+                                    <th scope="col">Marca</th>
+                                    <th scope="col">Stock Disponible</th>
+                                    <th scope="col">Estado</th>
+                                    <th scope="col">Precio Unitario</th>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {% for producto in productos %}
+                                    <tr>
+                                        <td>
+                                            <div class="product-name">{{ producto.nombre }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="product-brand">{{ producto.marca }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="stock-amount
+                                                {% if producto.stock.cantidadDisponible > 50 %}stock-high
+                                                {% elif producto.stock.cantidadDisponible > 20 %}stock-medium
+                                                {% else %}stock-low{% endif %}">
+                                                {{ producto.stock.cantidadDisponible|default:0 }} unidades
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if producto.stock.cantidadDisponible > 50 %}
+                                                <span class="stock-status status-high">Alto</span>
+                                            {% elif producto.stock.cantidadDisponible > 20 %}
+                                                <span class="stock-status status-medium">Medio</span>
+                                            {% else %}
+                                                <span class="stock-status status-low">Bajo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="price">${{ producto.precioUnitario }}</div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 {% else %}
                     <div class="empty-state">
                         <div class="icon">📦</div>
