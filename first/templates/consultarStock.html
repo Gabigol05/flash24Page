@@ -134,7 +134,7 @@
                 </div>
             </div>
         </header>
-
+        {% if ciudad_seleccionada%}
         <!-- Productos Section -->
         <section class="section-productos">
             {% if productos %}
@@ -197,7 +197,7 @@
                 </div>
             {% endif %}
         </section>
-
+        
         <!-- Alertas Section -->
         <section id="seccion-alertas" class="section-alertas">
             <div class="alertas-header">
@@ -245,6 +245,14 @@
                 </div>
             {% endif %}
         </section>
+        {% else %}
+        <!-- Prompt to select a city -->
+        <section class="section-prompt">
+            <div class="prompt-message">
+                <h2 class="prompt-title" style="color: red ">🌆Selecciona una ciudad para ver el inventario</h2>
+            </div>
+        </section>
+        {% endif %}
     </main>
 
     <script>
