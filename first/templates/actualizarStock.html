@@ -106,6 +106,7 @@
             </div>
 
             <!-- Lista de productos -->
+            {% if ciudad_seleccionada %} 
             <div class="products-section">
                 <div class="products-header">
                     <div>
@@ -169,6 +170,13 @@
                         <p>Agrega productos al sistema para comenzar a gestionar el inventario.</p>
                     </div>
                 {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="icon">🌆</div>
+                    <h3>Selecciona una ciudad para ver el inventario</h3>
+                    <p>Elige una ciudad en el formulario de recarga para cargar su inventario de productos.</p>
+                </div>
+            {% endif %}
             </div>
         </div>
     </div>
