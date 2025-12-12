@@ -1,5 +1,6 @@
 from django import forms
 from .models import Usuario
+from .models import Producto
 
 class UsuarioAdminForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, required=False)
@@ -15,3 +16,4 @@ class UsuarioAdminForm(forms.ModelForm):
         if commit:
             usuario.save()
         return usuario
+    

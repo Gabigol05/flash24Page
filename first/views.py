@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_POST
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import Maquina, Producto, Usuario, StockCiudad, RecargaMaquina, Proveedor, Ciudad, Compra, DetalleCompra
+import json
 
 # Create your views here.
 
@@ -311,3 +313,51 @@ def dashboard(request):
     }
     
     return render(request, 'dashboard.html', context)
+
+@require_auth
+def crear_producto_rapido(request):
+    try:
+        print("Cuerpo recibido:", request.body) 
+        print("Tipo de contenido:", request.headers.get('Content-Type'))
+        data = json.loads(request.body)
+        nombre = data.get('nombre')
+        marca = data.get('marca')
+        precioUnitario = data.get('precioUnitario')
+        
+        if not nombre:
+            return JsonResponse({'success': False, 'error': 'El nombre es obligatorio'})
+        if not marca:
+            return JsonResponse({'success': False, 'error': 'La marca es obligatoria'})
+        if not precioUnitario:
+            return JsonResponse({'success': False, 'error': 'El precio unitario es obligatorio'})
+        
+        #validaciones adicionales
+        palabrasNuevas = set(nombre.lower().split())
+        productos_existentes = Producto.objects.values_list('nombre', flat=True)
+        for nombre_existente in productos_existentes:
+            palabras_existentes = set(nombre_existente.lower().split())
+
+            # Comparamos los conjuntos. Si son iguales, tienen las mismas palabras
+            if palabrasNuevas == palabras_existentes:
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'Ya existe un producto similar: "{nombre_existente}"'
+                })
+
+
+        # Crear el producto
+        nuevo_producto = Producto.objects.create(
+            nombre=nombre,
+            marca=marca,
+            precioUnitario=precioUnitario,
+        )
+
+        return JsonResponse({
+            'success': True,
+            'id': nuevo_producto.id,
+            'nombre': nuevo_producto.nombre,
+            'marca': nuevo_producto.marca,
+            'precioUnitario': nuevo_producto.precioUnitario
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
