@@ -10,4 +10,6 @@ urlpatterns = [
     path('consultarStock', views.consultarStock, name='consultarStock'),
     #Que diga api/... es que solo devuelve datos (JSON), no renderiza plantillas como lo hacen consultarStock o actualizarStock
     path('api/crear-producto-rapido/', views.crear_producto_rapido, name='crear_producto_rapido'),
+    path('api/crear-maquinaRapido/', views.crear_maquinaRapido, name='crear_maquinaRapido'),
+    path('api/crear-proveedor-rapido/', views.crear_proveedor_rapido, name='crear_proveedor_rapido'),
 ]

@@ -361,3 +361,94 @@ def crear_producto_rapido(request):
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+    
+@require_auth
+def crear_maquinaRapido(request):
+    try:
+        print("Cuerpo recibido:", request.body) 
+        print("Tipo de contenido:", request.headers.get('Content-Type'))
+        data = json.loads(request.body)
+        nombre = data.get('nombre')
+        ubicacion = data.get('ubicacion')
+        
+        if not nombre:
+            return JsonResponse({'success': False, 'error': 'El nombre es obligatorio'})
+        if not ubicacion:
+            return JsonResponse({'success': False, 'error': 'La ubicacion es obligatoria'})
+        
+        #validaciones adicionales
+        palabrasNuevas = set(nombre.lower().split())
+        maquinas_existentes = Maquina.objects.values_list('nombre', flat=True)
+        for nombre_existente in maquinas_existentes:
+            palabras_existentes = set(nombre_existente.lower().split())
+
+            # Comparamos los conjuntos. Si son iguales, tienen las mismas palabras
+            if palabrasNuevas == palabras_existentes:
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'Ya existe una maquina similar: "{nombre_existente}"'
+                })
+
+
+        # Crear la maquina
+        nueva_maquina = Maquina.objects.create(
+            nombre=nombre,
+            ubicacion=ubicacion,
+        )
+
+        return JsonResponse({
+            'success': True,
+            'id': nueva_maquina.id,
+            'nombre': nueva_maquina.nombre,
+            'ubicacion': nueva_maquina.ubicacion,
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_auth
+def crear_proveedor_rapido(request):
+    try:
+        data = json.loads(request.body)
+        nombre = data.get('nombre')
+        telefono = data.get('telefono')
+        email = data.get('email')
+
+        if not nombre:
+            return JsonResponse({'success': False, 'error': 'El nombre es obligatorio'})
+        if not telefono:
+            return JsonResponse({'success': False, 'error': 'El teléfono es obligatorio'})
+        if not email:
+            return JsonResponse({'success': False, 'error': 'El email es obligatorio'})
+
+        # Validaciones de duplicado básicas
+        # 1) Evitar nombres muy similares por coincidencia de palabras
+        palabras_nuevas = set(nombre.lower().split())
+        proveedores_existentes = Proveedor.objects.values_list('nombre', flat=True)
+        for nombre_existente in proveedores_existentes:
+            palabras_existentes = set(nombre_existente.lower().split())
+            if palabras_nuevas == palabras_existentes:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Ya existe un proveedor similar: "{nombre_existente}"'
+                })
+
+        # 2) Evitar emails duplicados
+        if Proveedor.objects.filter(email=email).exists():
+            return JsonResponse({'success': False, 'error': 'Ya existe un proveedor con ese email'})
+
+        # Crear proveedor
+        nuevo_proveedor = Proveedor.objects.create(
+            nombre=nombre,
+            telefono=telefono,
+            email=email,
+        )
+
+        return JsonResponse({
+            'success': True,
+            'idProveedor': nuevo_proveedor.idProveedor,
+            'nombre': nuevo_proveedor.nombre,
+            'telefono': nuevo_proveedor.telefono,
+            'email': nuevo_proveedor.email,
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

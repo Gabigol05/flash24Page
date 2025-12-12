@@ -69,7 +69,29 @@
                                     </option>
                                 {% endfor %}
                             </select>
+                            <button type="button" class="btn btn-sm btn-secondary" id="btnCrearMaquinaRapido" 
+                                    onclick="abrirModalMaquina()">Nueva Maquina</button>
                         </div>
+                        <!-- MODAL DE Máquina -->
+                            <div id="modalNuevaMaquina" class="modal-overlay" style="display: none;">
+                            <div class="modal-content">
+                                <h3>✨ Nueva Máquina</h3>
+                                <form id="formNuevaMaquina">
+                                    <div class="form-group">
+                                        <label>Nombre de la maquina:</label>
+                                        <input type="text" id="nuevo_nombre_maquina" required placeholder="Ej: Cafetera 1">
+                                        <label>Ubicacion:</label>
+                                        <input type="text" id="nuevo_ubicacion_maquina" required placeholder="Ej: UNFRAF">
+                                    </div>
+                                    <div class="modal-actions">
+                                        <button type="button" class="btn-cancel" onclick="cerrarModalMaquina()">Cancelar</button>
+                                        <button type="button" class="btn-save" id="btnGuardarMaquina">Guardar Máquina</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                            
+
 
                         <!-- Campo: Búsqueda de Producto -->
                         <div class="form-group">
@@ -83,7 +105,7 @@
 
                         <!-- Campo: Cantidad -->
                         <div class="form-group">
-                            <label for="cantidad">Cantidad a cargar:</label>
+                            <label for="cantidad">Cantidad del producto a cargar en maquina:</label>
                             <input type="number" name="cantidad" id="cantidad" min="1" required aria-label="Cantidad a cargar" placeholder="Ingresa la cantidad">
                         </div>
 
@@ -370,6 +392,151 @@
                 }
             });
         });
+
+// === Lógica del modal de la creacion de maquina ===
+
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 1. SELECCIONAMOS EL BOTÓN, NO EL FORMULARIO
+            const btnGuardar = document.getElementById('btnGuardarMaquina');
+            
+            // Verificación de seguridad
+            if (btnGuardar) {
+                btnGuardar.addEventListener('click', function(e) {
+                    // Detenemos cualquier comportamiento por defecto o propagación
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
+                    
+                    const nombreInput = document.getElementById('nuevo_nombre_maquina');
+                    const valorNombre = nombreInput ? nombreInput.value : '';
+                    const ubicacionInput = document.getElementById('nuevo_ubicacion_maquina');
+                    const valorUbicacion = ubicacionInput ? ubicacionInput.value : '';
+                    
+                    // Validación simple
+                    if (!valorNombre.trim()) {
+                        alert("El nombre no puede estar vacío");
+                        return;
+                    }
+
+                    // Deshabilitar botón para evitar doble click
+                    btnGuardar.disabled = true;
+                    btnGuardar.innerText = "Guardando...";
+
+                    // Tu función fetch
+                    fetch("{% url 'crear_maquinaRapido' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ nombre: valorNombre, ubicacion: valorUbicacion })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Error en la red o servidor');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+  if (data.success) {
+
+    // 1) armamos el objeto producto tal como lo usa tu sistema
+    const nuevaMaquina = {
+      idMaquina: data.id,                       // ajustá si tu backend devuelve otro nombre
+      nombre: data.nombre,
+      ubicacion: data.ubicacion
+    };
+
+    // 2) actualizamos el estado JS (la "verdad" de tu app)
+    maquinas.push(nuevaMaquina);
+    maquinaById.set(String(nuevaMaquina.idMaquina), nuevaMaquina);
+
+    // 3) actualizamos la UI (select) con el mismo formato que el resto
+    const select = document.getElementById('maquina');
+    const option = document.createElement('option');
+    option.value = String(nuevaMaquina.idMaquina);
+    option.textContent = `${nuevaMaquina.nombre} - ${nuevaMaquina.ubicacion}`;
+    select.appendChild(option);
+
+    // 4) lo seleccionamos y DISPARAMOS el change
+    select.value = String(nuevaMaquina.id);
+    select.dispatchEvent(new Event('change'));
+
+    // 5) limpiar y cerrar modal
+    document.getElementById('nuevo_nombre_maquina').value = '';
+    document.getElementById('nuevo_ubicacion_maquina').value = '';
+
+    cerrarModalMaquina();
+
+  } else {
+    alert(data.error);
+  }
+})
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert("Hubo un error al procesar la solicitud.");
+                    })
+                    .finally(() => {
+                        // Reactivar botón siempre, pase lo que pase
+                        btnGuardar.disabled = false;
+                        btnGuardar.innerText = "Guardar";
+                    });
+                });
+            } else {
+                console.warn("⚠️ Advertencia: No se encontró el botón con ID 'btnGuardarProductoRapido'. Revisa tu HTML.");
+            }
+        });
+
+        // --- FUNCIONES GLOBALES ---
+
+        function abrirModalMaquina() {
+            const modal = document.getElementById('modalNuevaMaquina');
+            if (modal) {
+                modal.style.display = 'flex'; // O 'block', según tu CSS
+                setTimeout(() => {
+                    const input = document.getElementById('nuevo_nombre_maquina');
+                    if(input) input.focus();
+                }, 100);
+            }
+        }
+
+        function cerrarModalMaquina() {
+            const modal = document.getElementById('modalNuevaMaquina');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Esc para cerrar
+            function onEsc(e) { if (e.key === 'Escape') cerrarModalMaquina(); }
+            document.addEventListener('keydown', onEsc);
+            overlay._onEsc = onEsc;
+
+            // Click fuera cierra
+            function onOverlayClick(e) { if (e.target === overlay) cerrarModalMaquina(); }
+            overlay.addEventListener('click', onOverlayClick);
+            overlay._onOverlayClick = onOverlayClick;
+
+
+
+
+
+
+
+
     </script>
 </body>
 </html>
