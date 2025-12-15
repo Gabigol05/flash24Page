@@ -172,7 +172,7 @@
 
                 <!-- Botones de Acción -->
                 <div style="text-align: center; margin-top: 30px;">
-                    <button type="submit" class="btn btn-primary" id="btnGuardar" disabled>
+                    <button type="button" class="btn btn-primary" id="btnGuardar" disabled onclick="guardarCompra()">
                         💾 Guardar Compra
                     </button>
                     <button type="button" class="btn btn-secondary" id="btnLimpiar">
@@ -423,9 +423,31 @@
             totalCalculadoSpan.textContent = formatoMoneda(total);
             importeDeclaradoSpan.textContent = formatoMoneda(declarado);
             diferenciaValorSpan.textContent = formatoMoneda(dif);
+            
+            // Habilitar el botón de guardar solo si todo está completo
+            validarFormularioCompleto();
+        }
+
+        function validarFormularioCompleto() {
+            const proveedor = document.getElementById('proveedor').value;
+            const ciudad = document.getElementById('lugar').value;
+            const importe = parseFloat(importeTotalInput.value) || 0;
+            const total = totalCalculado();
+            const dif = importe - total;
+            
+            const esValido = 
+                proveedor !== '' &&
+                ciudad !== '' &&
+                importe > 0 &&
+                detalles.length > 0 &&
+                Math.abs(dif) < 0.01;
+            
+            btnGuardar.disabled = !esValido;
         }
 
         importeTotalInput.addEventListener('input', actualizarResumenUI);
+        document.getElementById('proveedor').addEventListener('change', validarFormularioCompleto);
+        document.getElementById('lugar').addEventListener('change', validarFormularioCompleto);
 
         /* =========================
            Modal de Resumen (Idea 3 y 8)
@@ -608,28 +630,62 @@
         }
 
         /* =========================
-           Submit (Idea 5 - Opción 1)
+           Submit - COMENTADO (ahora usamos onclick en el botón)
         ========================== */
+        // El evento submit fue reemplazado por la función guardarCompra()
+        // que se llama con onclick del botón
+        /*
         form.addEventListener('submit', (e) => {
-            // Validación básica antes de serializar
+            // ... código anterior ...
+        });
+        */
+
+        function crearHidden(name, value, cls) {
+            const h = document.createElement('input');
+            h.type = 'hidden';
+            h.name = name;
+            h.value = value;
+            h.className = cls;
+            form.appendChild(h);
+        }
+
+        // Función para guardar la compra (onclick del botón)
+        function guardarCompra() {
+            console.log('🚀 [GUARDAR] Función guardarCompra() ejecutada');
+            
+            // Validación básica
             if (detalles.length === 0) {
-                e.preventDefault();
-                alert('No hay productos cargados.');
+                alert('❌ No hay productos cargados. Agregue al menos un producto.');
                 return;
             }
+            
+            const proveedor = document.getElementById('proveedor').value;
+            const ciudad = document.getElementById('lugar').value;
             const declarado = parseFloat(importeTotalInput.value) || 0;
+            
+            if (!proveedor || !ciudad) {
+                alert('❌ Debe seleccionar proveedor y ciudad.');
+                return;
+            }
+            
+            if (declarado <= 0) {
+                alert('❌ Debe ingresar un importe total válido.');
+                return;
+            }
+            
             const dif = declarado - totalCalculado();
             if (Math.abs(dif) > 0.01) {
-                e.preventDefault();
-                alert('La diferencia debe ser 0 (±0,01). Revise los montos.');
+                alert(`❌ La diferencia debe ser 0. Actualmente hay una diferencia de $${dif.toFixed(2)}`);
                 return;
             }
 
-            // Limpiar inputs ocultos anteriores (por si hubo submit previo cancelado)
+            console.log('✅ Validación pasó. Serializando detalles...', detalles);
+
+            // Limpiar inputs ocultos anteriores
             Array.from(form.querySelectorAll('input[type="hidden"].hidden-detalle, input[type="hidden"].hidden-override'))
                  .forEach(el => el.remove());
 
-            // Serializar detalles: producto_i, cantidad_i, precio_unitario_i, subtotal_i
+            // Serializar detalles
             detalles.forEach((it, idx) => {
                 const i = idx + 1;
                 crearHidden(`producto_${i}`, it.productoId, 'hidden-detalle');
@@ -639,10 +695,8 @@
             });
             crearHidden('detalles_count', String(detalles.length), 'hidden-detalle');
 
-            // Flags de override de precio por productId
-            // Si hay múltiples overrides para el mismo producto con distintos precios,
-            // priorizamos la última línea encontrada.
-            const overrides = new Map(); // productId -> nuevoPrecio
+            // Flags de override de precio
+            const overrides = new Map();
             for (const it of detalles) {
                 if (it.overridePrecio) {
                     overrides.set(it.productoId, Number(it.precioUnitario).toFixed(2));
@@ -653,17 +707,12 @@
                 crearHidden(`nuevo_precio_${productId}`, nuevoPrecio, 'hidden-override');
             });
 
-            // Deshabilitar el botón para evitar doble submit
+            // Mostrar que estamos procesando
             btnGuardar.disabled = true;
-        });
-
-        function crearHidden(name, value, cls) {
-            const h = document.createElement('input');
-            h.type = 'hidden';
-            h.name = name;
-            h.value = value;
-            h.className = cls;
-            form.appendChild(h);
+            btnGuardar.innerText = '⏳ Guardando...';
+            
+            console.log('📤 Enviando formulario...');
+            form.submit();
         }
 
         /* =========================
