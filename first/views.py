@@ -55,7 +55,11 @@ def require_auth(view_func):
 
 @require_auth
 def index(request):
-    return render(request, 'index.html')
+    context = {
+        'proveedores': Proveedor.objects.all(),
+        'maquinas': Maquina.objects.all(),
+    }
+    return render(request, 'index.html', context)
 
 @require_auth
 def registrarCompra(request):

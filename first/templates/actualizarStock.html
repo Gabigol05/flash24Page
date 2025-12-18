@@ -442,7 +442,7 @@
 
     // 1) armamos el objeto producto tal como lo usa tu sistema
     const nuevaMaquina = {
-      idMaquina: data.id,                       // ajustá si tu backend devuelve otro nombre
+      idMaquina: data.idMaquina,                       // ajustá si tu backend devuelve otro nombre
       nombre: data.nombre,
       ubicacion: data.ubicacion
     };
@@ -459,7 +459,7 @@
     select.appendChild(option);
 
     // 4) lo seleccionamos y DISPARAMOS el change
-    select.value = String(nuevaMaquina.id);
+    select.value = String(nuevaMaquina.idMaquina);
     select.dispatchEvent(new Event('change'));
 
     // 5) limpiar y cerrar modal
